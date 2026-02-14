@@ -13,7 +13,7 @@
     <div class="login-container">
         <div class="login-box">
             <img src="assets/logo.png" alt="KKG FABTEX" class="login-logo">
-            <h2>Login to PO System</h2>
+            <h2>Login to KKG FABTEX</h2>
             <p class="login-subtitle">Enter your credentials to access the system</p>
             
             <form id="loginForm">
@@ -35,24 +35,35 @@
 
     <script src="app.js"></script>
     <script>
-        document.getElementById('loginForm').addEventListener('submit', function(e) {
+        // SHA-256 hash function using Web Crypto API
+        async function sha256(message) {
+            const msgBuffer = new TextEncoder().encode(message);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        }
+
+        // Pre-hashed credentials (sha256 of "username:password")
+        const validCredentials = [
+            '621d5b4acb5400abdf3db45e24bb1c5995e9cb09405870b09d77629b77f82a80',
+            'a41c35fe987709da0cfb60727b90111b909e104f164fcbc4740f5709f0426c6b',
+            '42bb779e2d8d0dbed2a54dfbd0293ca7617b6fde8c85af7dcbe6043caec1b9ae'
+        ];
+
+        document.getElementById('loginForm').addEventListener('submit', async function(e) {
             e.preventDefault();
-            
+
             const username = document.getElementById('username').value;
             const password = document.getElementById('password').value;
             const errorDiv = document.getElementById('loginError');
-            
-            // Valid users
-            const validUsers = ['atul', 'manoj', 'devansh'];
-            const validPassword = 'password123';
-            
-            if (validUsers.includes(username.toLowerCase()) && password === validPassword) {
-                // Store logged in user
+
+            // Hash the input credentials and compare
+            const inputHash = await sha256(username.toLowerCase() + ':' + password);
+
+            if (validCredentials.includes(inputHash)) {
                 localStorage.setItem('currentUser', username);
                 localStorage.setItem('isLoggedIn', 'true');
-                
-                // Redirect to dashboard
-                window.location.href = 'dashboard.html';
+                window.location.href = 'modules.html';
             } else {
                 errorDiv.textContent = 'Invalid username or password';
                 errorDiv.style.display = 'block';

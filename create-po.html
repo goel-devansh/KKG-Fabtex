@@ -60,7 +60,10 @@
                     <div class="form-row">
                         <div class="form-group full-width">
                             <label for="itemDescription">Item Description *</label>
-                            <textarea id="itemDescription" required placeholder="e.g., GREIGE WOVEN FABRICS 100% ORGANIC COTTON VOIL 80x72 63" ORGANIC" rows="3"></textarea>
+                            <div class="organic-toggle-row">
+                                <button type="button" id="organicToggle" class="btn-organic" onclick="toggleOrganic()">🌿 Organic PO</button>
+                            </div>
+                            <textarea id="itemDescription" required placeholder="e.g., GREIGE WOVEN FABRICS 100% ORGANIC COTTON VOIL 80x72 63&quot; ORGANIC" rows="3"></textarea>
                         </div>
                     </div>
                     <div class="form-row">
@@ -198,6 +201,32 @@
                 supplierAddressInput.placeholder = '';
             }
         });
+
+        // Organic PO toggle
+        let isOrganic = false;
+        const organicPrefix = 'GREIGE WOVEN FABRIC 100% ORGANIC COTTON ';
+        const itemDescriptionInput = document.getElementById('itemDescription');
+
+        function toggleOrganic() {
+            const btn = document.getElementById('organicToggle');
+            isOrganic = !isOrganic;
+
+            if (isOrganic) {
+                btn.classList.add('btn-organic-active');
+                btn.textContent = '🌿 Organic PO ✓';
+                // Prepend organic prefix if not already there
+                if (!itemDescriptionInput.value.toUpperCase().startsWith(organicPrefix)) {
+                    itemDescriptionInput.value = organicPrefix + itemDescriptionInput.value;
+                }
+            } else {
+                btn.classList.remove('btn-organic-active');
+                btn.textContent = '🌿 Organic PO';
+                // Remove organic prefix if present
+                if (itemDescriptionInput.value.toUpperCase().startsWith(organicPrefix)) {
+                    itemDescriptionInput.value = itemDescriptionInput.value.substring(organicPrefix.length);
+                }
+            }
+        }
 
         // Remarks dropdown handler
         const remarksSelect = document.getElementById('remarksSelect');

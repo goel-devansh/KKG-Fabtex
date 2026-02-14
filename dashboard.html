@@ -29,7 +29,7 @@
         <div class="dashboard-header">
             <h1>Purchase Orders Dashboard</h1>
             <div style="display: flex; gap: 1rem;">
-                <button onclick="resetSystem()" class="btn-secondary" style="background: #dc2626; color: white; border: none;">⚠️ Reset System</button>
+                <button onclick="removePO()" class="btn-secondary" style="background: #dc2626; color: white; border: none;">🗑️ Delete PO</button>
                 <a href="create-po.html" class="btn-primary">+ Create New PO</a>
             </div>
         </div>
@@ -163,74 +163,68 @@ Payment Terms: ${po.paymentTerms}
             window.location.href = 'login.html';
         }
         
-        function resetSystem() {
+        function removePO() {
             const pos = JSON.parse(localStorage.getItem('purchaseOrders') || '[]');
-            const currentPONumber = parseInt(localStorage.getItem('currentPONumber') || '259');
-            
+
             if (pos.length === 0) {
-                alert('No purchase orders to reset!');
+                alert('No purchase orders to remove!');
                 return;
             }
-            
-            // Show current status
-            const statusMessage = `Current Status:\n\n` +
-                `• Total POs: ${pos.length}\n` +
-                `• PO Numbers: ${Math.min(...pos.map(p => p.poNumber))} to ${Math.max(...pos.map(p => p.poNumber))}\n` +
-                `• Next PO will be: ${currentPONumber + 1}\n\n` +
-                `Enter the PO number you want to reset FROM.\n` +
-                `(All POs from this number onwards will be deleted)`;
-            
-            const resetFromPO = prompt(statusMessage);
-            
-            if (!resetFromPO) {
+
+            const poNumberStr = prompt('Enter the PO number you want to delete:');
+
+            if (!poNumberStr) {
                 return; // User cancelled
             }
-            
-            const resetNumber = parseInt(resetFromPO);
-            
-            if (isNaN(resetNumber)) {
+
+            const poNumber = parseInt(poNumberStr);
+
+            if (isNaN(poNumber)) {
                 alert('❌ Invalid PO number entered!');
                 return;
             }
-            
-            // Find POs to delete
-            const posToDelete = pos.filter(p => p.poNumber >= resetNumber);
-            const posToKeep = pos.filter(p => p.poNumber < resetNumber);
-            
-            if (posToDelete.length === 0) {
-                alert(`No POs found with number ${resetNumber} or higher.`);
+
+            const poToDelete = pos.find(p => p.poNumber === poNumber);
+
+            if (!poToDelete) {
+                alert(`❌ PO #${poNumber} not found.`);
                 return;
             }
-            
-            // Show confirmation with details
+
             const confirmMessage = `⚠️ CONFIRM DELETION:\n\n` +
-                `You will DELETE:\n` +
-                `• ${posToDelete.length} Purchase Order(s)\n` +
-                `• PO Numbers: ${Math.min(...posToDelete.map(p => p.poNumber))} to ${Math.max(...posToDelete.map(p => p.poNumber))}\n\n` +
-                `You will KEEP:\n` +
-                `• ${posToKeep.length} Purchase Order(s)\n` +
-                (posToKeep.length > 0 ? `• PO Numbers: ${Math.min(...posToKeep.map(p => p.poNumber))} to ${Math.max(...posToKeep.map(p => p.poNumber))}\n\n` : '\n') +
-                `Next PO number will be reset to: ${resetNumber}\n\n` +
+                `PO #${poToDelete.poNumber}\n` +
+                `Supplier: ${poToDelete.supplierName}\n` +
+                `Date: ${poToDelete.date}\n\n` +
                 `This action CANNOT be undone!\n\n` +
                 `Type "DELETE" to confirm:`;
-            
+
             const confirmation = prompt(confirmMessage);
-            
+
             if (confirmation === 'DELETE') {
-                // Keep only the POs before the reset number
-                localStorage.setItem('purchaseOrders', JSON.stringify(posToKeep));
-                
-                // Reset counter to one less than the reset number
-                localStorage.setItem('currentPONumber', (resetNumber - 1).toString());
-                
-                alert(`✅ Reset Complete!\n\n` +
-                    `• Deleted ${posToDelete.length} PO(s)\n` +
-                    `• Kept ${posToKeep.length} PO(s)\n` +
-                    `• Next PO will be: ${resetNumber}`);
-                
+                const updatedPOs = pos.filter(p => p.poNumber !== poNumber);
+                localStorage.setItem('purchaseOrders', JSON.stringify(updatedPOs));
+
+                // Update PO counter based on which PO was deleted
+                const currentCounter = parseInt(localStorage.getItem('currentPONumber') || '259');
+                if (updatedPOs.length === 0) {
+                    // All POs deleted - reset counter so next PO reuses deleted number
+                    localStorage.setItem('currentPONumber', (poNumber - 1).toString());
+                } else {
+                    // Find the highest remaining PO number
+                    const highestRemaining = Math.max(...updatedPOs.map(p => p.poNumber));
+                    if (poNumber > highestRemaining) {
+                        // Deleted the last PO - next PO reuses that number
+                        localStorage.setItem('currentPONumber', (poNumber - 1).toString());
+                    } else {
+                        // Deleted from middle - next PO is incremental of last existing
+                        localStorage.setItem('currentPONumber', highestRemaining.toString());
+                    }
+                }
+
+                alert(`✅ PO #${poNumber} has been deleted successfully!`);
                 location.reload();
             } else {
-                alert('❌ Reset cancelled. Confirmation text did not match.');
+                alert('❌ Deletion cancelled. Confirmation text did not match.');
             }
         }
         
