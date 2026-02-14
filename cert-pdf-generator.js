@@ -1,30 +1,22 @@
-// PDF Generator for KKG FABTEX Purchase Orders
+// Certificate PDF Generator for KKG FABTEX Ecovero Certificates
 
-function downloadPO(poNumber) {
-    const pos = JSON.parse(localStorage.getItem('purchaseOrders') || '[]');
-    const po = pos.find(p => p.poNumber === poNumber);
+function downloadCert(refNumber) {
+    const certs = JSON.parse(localStorage.getItem('certificates') || '[]');
+    const cert = certs.find(c => c.refNumber === refNumber);
 
-    if (!po) {
-        alert('Purchase Order not found!');
+    if (!cert) {
+        alert('Certificate not found!');
         return;
     }
 
-    generatePDF(po);
+    generateCertPDF(cert);
 }
 
-// Helper: format number with commas (e.g. 3500 -> 3,500)
-function formatNumberWithCommas(str) {
-    // Extract numeric part from string like "3500 MTS" or "3500"
-    return str.replace(/(\d+)/g, function(match) {
-        return parseInt(match).toLocaleString('en-IN');
-    });
-}
-
-function generatePDF(po) {
+function generateCertPDF(cert) {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
 
-    const pageWidth = 210; // A4 width in mm
+    const pageWidth = 210;
     const margin = 15;
     let yPosition = 12;
 
@@ -37,7 +29,7 @@ function generatePDF(po) {
         console.log('Logo not loaded');
     }
 
-    // 1. SUBJECT TO DELHI JURISDICTION - Centered and Underlined at very top
+    // SUBJECT TO DELHI JURISDICTION - Centered and Underlined
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
     const jurisdictionText = 'SUBJECT TO DELHI JURISDICTION';
@@ -46,7 +38,7 @@ function generatePDF(po) {
     doc.text(jurisdictionText, jurisdictionX, yPosition);
     doc.line(jurisdictionX, yPosition + 1, jurisdictionX + jurisdictionWidth, yPosition + 1);
 
-    // Phone numbers - Right aligned at top
+    // Phone numbers - Right aligned
     doc.setFontSize(9);
     const phoneY = yPosition;
     const rightMargin = pageWidth - margin;
@@ -57,14 +49,14 @@ function generatePDF(po) {
 
     yPosition += 18;
 
-    // Company Name - KKG FABTEX (Large, Bold, Centered)
+    // Company Name
     doc.setFontSize(22);
     doc.setFont('helvetica', 'bold');
     doc.text('KKG FABTEX', pageWidth / 2, yPosition, { align: 'center' });
 
     yPosition += 8;
 
-    // 2. Company Address (Centered, BOLD)
+    // Company Address
     doc.setFontSize(9);
     doc.setFont('helvetica', 'bold');
     doc.text('Shed No. 72, Scheme - 1, DSIDC, Okhla Industrial Area Phase – II, New Delhi - 110020',
@@ -72,228 +64,96 @@ function generatePDF(po) {
 
     yPosition += 6;
 
-    // GSTIN (Centered, Bold)
-    doc.setFontSize(9);
-    doc.setFont('helvetica', 'bold');
+    // GSTIN
     doc.text('GSTIN : 07AAXFK2367H1ZT', pageWidth / 2, yPosition, { align: 'center' });
-
-    yPosition += 5;
-
-    // License (Centered, Bold)
-    doc.text('License No. : 222533', pageWidth / 2, yPosition, { align: 'center' });
 
     yPosition += 12;
 
-    // PO Number (left) and Date (right) with underlines - BOLD
+    // Ref. No. (left) and Dated (right) - BOLD
     doc.setFontSize(10);
     doc.setFont('helvetica', 'bold');
 
-    const poText = 'P.O. No. ' + po.poNumber;
-    doc.text(poText, margin, yPosition);
-    const poNumStart = margin + doc.getTextWidth('P.O. No. ');
-    const poNumEnd = margin + doc.getTextWidth(poText);
-    doc.line(poNumStart, yPosition + 0.5, poNumEnd, yPosition + 0.5);
+    const refText = 'Ref. No.   KKG/' + cert.refNumber;
+    doc.text(refText, margin, yPosition);
+    const refNumStart = margin + doc.getTextWidth('Ref. No.   ');
+    const refNumEnd = margin + doc.getTextWidth(refText);
+    doc.line(refNumStart, yPosition + 0.5, refNumEnd, yPosition + 0.5);
 
-    const dateText = 'Dated ' + po.date;
+    const dateText = 'Dated        ' + cert.date;
     doc.text(dateText, rightMargin, yPosition, { align: 'right' });
-    const dateNumStart = rightMargin - doc.getTextWidth(po.date);
-    doc.line(dateNumStart, yPosition + 0.5, rightMargin, yPosition + 0.5);
+    const dateValWidth = doc.getTextWidth(cert.date);
+    doc.line(rightMargin - dateValWidth, yPosition + 0.5, rightMargin, yPosition + 0.5);
 
     yPosition += 12;
 
-    // PURCHASE ORDER (Centered, Bold, Underlined)
-    doc.setFontSize(13);
+    // CERTIFICATE NO. - Centered, Bold, Underlined
+    doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
-    const poTitle = 'PURCHASE ORDER';
-    const poTitleWidth = doc.getTextWidth(poTitle);
-    const poTitleX = (pageWidth - poTitleWidth) / 2;
-    doc.text(poTitle, poTitleX, yPosition);
-    doc.line(poTitleX, yPosition + 1, poTitleX + poTitleWidth, yPosition + 1);
+    const certNoText = 'CERTIFICATE NO. ' + cert.certificateNo;
+    const certNoWidth = doc.getTextWidth(certNoText);
+    const certNoX = (pageWidth - certNoWidth) / 2;
+    doc.text(certNoText, certNoX, yPosition);
+    doc.line(certNoX, yPosition + 1, certNoX + certNoWidth, yPosition + 1);
 
     yPosition += 15;
 
-    // Supplier Information (Right side of page)
+    // ===== Certificate Body =====
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
 
-    const supplierLabelX = pageWidth - 120;
-    const supplierValueX = pageWidth - 75;
-    const supplierMaxWidth = rightMargin - supplierValueX;
-
-    // Supplier's Name
-    doc.text("Supplier's Name", supplierLabelX, yPosition);
-    doc.setFont('helvetica', 'bold');
-    const nameLines = doc.splitTextToSize(po.supplierName, supplierMaxWidth);
-    const nameHeight = nameLines.length * 5;
-    // Render each name line individually for precise alignment
-    for (var i = 0; i < nameLines.length; i++) {
-        var lineY = yPosition + (i * 5);
-        doc.text(nameLines[i], supplierValueX, lineY);
-        doc.line(supplierValueX, lineY + 0.5, rightMargin, lineY + 0.5);
+    // Build invoice text
+    var invoiceText = '';
+    if (cert.invoices.length === 1) {
+        var inv = cert.invoices[0];
+        invoiceText = 'VIDE OUR SALES INVOICE NO. ' + inv.invoiceNo + ' DATED ' + inv.invoiceDate + ' FOR ' + inv.meters + ' METERS';
+    } else {
+        var parts = [];
+        for (var i = 0; i < cert.invoices.length; i++) {
+            var inv = cert.invoices[i];
+            if (i === 0) {
+                parts.push('VIDE OUR SALES INVOICE NO. ' + inv.invoiceNo + ' DATED ' + inv.invoiceDate + ' FOR ' + inv.meters + ' METERS');
+            } else {
+                parts.push('AND SALES INVOICE NO. ' + inv.invoiceNo + ' DATED ' + inv.invoiceDate + ' FOR ' + inv.meters + ' METERS');
+            }
+        }
+        invoiceText = parts.join(' ');
     }
 
-    yPosition += Math.max(7, nameHeight + 2);
+    var bodyText = 'THIS IS TO CERTIFY THAT ' +
+        cert.fabricDescription.toUpperCase() +
+        ' FABRIC IS SUPPLIED TO M/S ' +
+        cert.buyerName.toUpperCase() + ' ' +
+        cert.buyerAddress.toUpperCase() + ' ' +
+        invoiceText +
+        ' ARE ECOVERO COMPLIANT GOODS MADE USING ECOVERO FIBERS FROM LENZING. THE GOOD HAVE BEEN MANUFACTURED BY M/S ' +
+        cert.manufacturerName.toUpperCase() +
+        ' AND YARN PRODUCER IS ' +
+        cert.yarnProducer.toUpperCase() + '.';
 
-    // Address - FIX #7: underline each line of multi-line address
-    doc.setFont('helvetica', 'normal');
-    doc.text('Address', supplierLabelX, yPosition);
+    // Wrap and render body text
+    var bodyMaxWidth = pageWidth - 2 * margin;
+    var bodyLines = doc.splitTextToSize(bodyText, bodyMaxWidth);
+    doc.text(bodyLines, margin, yPosition);
+    yPosition += bodyLines.length * 5 + 8;
+
+    // Contact Person
     doc.setFont('helvetica', 'bold');
-    const addressLines = doc.splitTextToSize(po.supplierAddress, supplierMaxWidth);
-    // Render each address line individually for precise alignment
-    for (var i = 0; i < addressLines.length; i++) {
-        var lineY = yPosition + (i * 5);
-        doc.text(addressLines[i], supplierValueX, lineY);
-        doc.line(supplierValueX, lineY + 0.5, rightMargin, lineY + 0.5);
-    }
-    var addressHeight = addressLines.length * 5;
+    doc.text('CONTACT PERSON – ' + cert.contactPerson.toUpperCase(), margin, yPosition);
+    yPosition += 6;
 
-    yPosition += Math.max(10, addressHeight + 5);
+    doc.text('TELEPHONE NUMBER – ' + cert.telephone, margin, yPosition);
+    yPosition += 6;
 
-    // ========================================
-    // TABLE - Improved design with better structure
-    // ========================================
-    const tableX = margin;
-    const tableWidth = pageWidth - 2 * margin;
-    const headerHeight = 10;
+    doc.text('EMAIL ID – ' + cert.email, margin, yPosition);
+    yPosition += 25;
 
-    // Column widths - adjusted for better proportions
-    const col1Width = 16;  // S. NO.
-    const col2Width = 72;  // ITEM
-    const col3Width = 32;  // QUANTITY
-    const col4Width = 28;  // RATE
-    const col5Width = tableWidth - col1Width - col2Width - col3Width - col4Width; // REMARKS
-
-    // --- Table Header with gray background ---
-    doc.setFillColor(240, 240, 240);
-    doc.setDrawColor(0);
-    doc.setLineWidth(0.4);
-    doc.rect(tableX, yPosition, tableWidth, headerHeight, 'FD');
-
-    // Header text - bold, centered vertically
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(10);
-    var headerTextY = yPosition + headerHeight / 2 + 1.5;
-
-    var currentX = tableX;
-
-    // S. NO. - centered
-    doc.text('S. NO.', currentX + col1Width / 2, headerTextY, { align: 'center' });
-    currentX += col1Width;
-
-    // ITEM - centered
-    doc.line(currentX, yPosition, currentX, yPosition + headerHeight);
-    doc.text('ITEM', currentX + col2Width / 2, headerTextY, { align: 'center' });
-    currentX += col2Width;
-
-    // QUANTITY - centered
-    doc.line(currentX, yPosition, currentX, yPosition + headerHeight);
-    doc.text('QUANTITY', currentX + col3Width / 2, headerTextY, { align: 'center' });
-    currentX += col3Width;
-
-    // RATE - centered
-    doc.line(currentX, yPosition, currentX, yPosition + headerHeight);
-    doc.text('RATE', currentX + col4Width / 2, headerTextY, { align: 'center' });
-    currentX += col4Width;
-
-    // REMARKS - centered
-    doc.line(currentX, yPosition, currentX, yPosition + headerHeight);
-    doc.text('REMARKS', currentX + col5Width / 2, headerTextY, { align: 'center' });
-
-    yPosition += headerHeight;
-
-    // --- Table Row (Data) ---
+    // Signature
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(10);
-
-    // FIX #5: item description in ALL CAPS
-    var itemText = (po.itemDescription || '').toUpperCase();
-    var itemLines = doc.splitTextToSize(itemText, col2Width - 6);
-
-    // FIX #4: format quantity with commas
-    var qtyFormatted = formatNumberWithCommas(po.quantity);
-    var qtyLines = doc.splitTextToSize(qtyFormatted, col3Width - 6);
-
-    var rateText = 'Rs ' + po.rate;
-    var rateLines = doc.splitTextToSize(rateText, col4Width - 6);
-    var remarkLines = doc.splitTextToSize(po.remarks || '', col5Width - 6);
-
-    var lineHeight = 5;
-    var cellPadding = 4;
-    var maxContentHeight = Math.max(
-        itemLines.length * lineHeight,
-        qtyLines.length * lineHeight,
-        rateLines.length * lineHeight,
-        remarkLines.length * lineHeight
-    );
-    var rowHeight = Math.max(35, maxContentHeight + cellPadding * 2);
-
-    // Draw row border
-    doc.setLineWidth(0.4);
-    doc.rect(tableX, yPosition, tableWidth, rowHeight);
-
-    currentX = tableX;
-
-    // S. NO. - centered in cell
-    doc.text('1', currentX + col1Width / 2, yPosition + cellPadding + lineHeight, { align: 'center' });
-    currentX += col1Width;
-
-    // ITEM - left aligned with padding, vertically centered
-    doc.line(currentX, yPosition, currentX, yPosition + rowHeight);
-    var itemStartY = yPosition + cellPadding + lineHeight;
-    doc.text(itemLines, currentX + 3, itemStartY);
-    currentX += col2Width;
-
-    // QUANTITY - centered in cell
-    doc.line(currentX, yPosition, currentX, yPosition + rowHeight);
-    doc.setFont('helvetica', 'bold');
-    var qtyStartY = yPosition + cellPadding + lineHeight;
-    for (var i = 0; i < qtyLines.length; i++) {
-        doc.text(qtyLines[i], currentX + col3Width / 2, qtyStartY + (i * lineHeight), { align: 'center' });
-    }
-    currentX += col3Width;
-
-    // RATE - centered in cell
-    doc.line(currentX, yPosition, currentX, yPosition + rowHeight);
-    doc.text(rateText, currentX + col4Width / 2, yPosition + cellPadding + lineHeight, { align: 'center' });
-    currentX += col4Width;
-
-    // REMARKS - centered in cell
-    doc.line(currentX, yPosition, currentX, yPosition + rowHeight);
-    doc.setFont('helvetica', 'normal');
-    for (var i = 0; i < remarkLines.length; i++) {
-        doc.text(remarkLines[i], currentX + col5Width / 2, yPosition + cellPadding + lineHeight + (i * lineHeight), { align: 'center' });
-    }
-
-    yPosition += rowHeight + 10;
-
-    // FIX #6: Delivery Date in ALL CAPS
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(10);
-    doc.text('Delivery Date', margin, yPosition);
-    doc.setFont('helvetica', 'bold');
-    var deliveryX = margin + 30;
-    var deliveryDateText = (po.deliveryDate || '').toUpperCase();
-    doc.text(deliveryDateText, deliveryX, yPosition);
-    doc.line(deliveryX, yPosition + 0.5, deliveryX + doc.getTextWidth(deliveryDateText), yPosition + 0.5);
-
-    yPosition += 7;
-
-    // Payment Terms
-    doc.setFont('helvetica', 'normal');
-    doc.text('Payment Terms', margin, yPosition);
-    doc.setFont('helvetica', 'bold');
-    var paymentX = margin + 30;
-    doc.text(po.paymentTerms, paymentX, yPosition);
-    doc.line(paymentX, yPosition + 0.5, paymentX + doc.getTextWidth(po.paymentTerms), yPosition + 0.5);
-
-    yPosition += 35;
-
-    // 4. Signature - RIGHT ALIGNED
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(10);
-    doc.text('For KKG FABTEX', rightMargin, yPosition, { align: 'right' });
+    doc.text('FOR KKG FABTEX', rightMargin, yPosition, { align: 'right' });
+    yPosition += 20;
+    doc.text('AUTHORISED SIGNATORY', rightMargin, yPosition, { align: 'right' });
 
     // Save PDF
-    var fileName = 'PO_' + po.poNumber + '_' + po.supplierName.replace(/[^a-zA-Z0-9]/g, '_') + '.pdf';
+    var fileName = 'Certificate_KKG_' + cert.refNumber + '_' + cert.buyerName.replace(/[^a-zA-Z0-9]/g, '_') + '.pdf';
     doc.save(fileName);
 }

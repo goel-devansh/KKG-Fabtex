@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Certificate - KKG FABTEX</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <nav class="navbar dashboard-nav">
+        <div class="nav-container">
+            <div class="logo-section">
+                <img src="assets/logo.png" alt="KKG FABTEX" class="logo-small">
+                <span class="nav-title">Create Ecovero Certificate</span>
+            </div>
+            <div class="nav-right">
+                <a href="cert-dashboard.html" class="btn-secondary">← Back to Dashboard</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="form-container">
+        <div class="form-box">
+            <h2>New Ecovero Certificate</h2>
+            <p class="next-po-info">Next Ref. No.: <strong>KKG/<span id="nextRefDisplay">61</span></strong></p>
+
+            <form id="certForm">
+                <!-- Step 1: Buyer Information -->
+                <div class="form-section" id="sectionBuyer">
+                    <h3><span class="step-badge">1</span> Buyer Information</h3>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="buyerSelect">Select Buyer</label>
+                            <select id="buyerSelect">
+                                <option value="">-- Add New Buyer --</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="buyerName">Buyer Name (M/S) *</label>
+                            <input type="text" id="buyerName" required placeholder="e.g., CERTITUDE">
+                        </div>
+                        <div class="form-group">
+                            <label for="buyerAddress">Buyer Address *</label>
+                            <input type="text" id="buyerAddress" required placeholder="e.g., B-64, SECTOR-83, NOIDA">
+                        </div>
+                    </div>
+                    <div class="section-next">
+                        <button type="button" id="btnNextToFabric" class="btn-primary">Next: Fabric & Invoice →</button>
+                    </div>
+                </div>
+
+                <!-- Step 2: Fabric & Invoice Details -->
+                <div class="form-section section-hidden" id="sectionFabric">
+                    <h3><span class="step-badge">2</span> Fabric & Invoice Details</h3>
+                    <div class="form-row">
+                        <div class="form-group full-width">
+                            <label for="fabricDescription">Fabric Description *</label>
+                            <input type="text" id="fabricDescription" required placeholder="e.g., 30s ECOVERO x 30s ECOVERO RAYON 68x60 63&quot;">
+                        </div>
+                    </div>
+
+                    <div id="invoicesContainer">
+                        <div class="invoice-row" data-index="0">
+                            <h4 style="margin-bottom: 0.75rem; color: #475569; font-size: 0.95rem;">Invoice 1</h4>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Sales Invoice No. *</label>
+                                    <input type="text" class="inv-number" required placeholder="e.g., 521">
+                                </div>
+                                <div class="form-group">
+                                    <label>Invoice Date *</label>
+                                    <input type="date" class="inv-date" required>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Meters *</label>
+                                    <input type="text" class="inv-meters" required placeholder="e.g., 4699.10">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="margin-top: 0.75rem; margin-bottom: 1rem;">
+                        <button type="button" id="addInvoiceBtn" class="btn-secondary" style="font-size: 0.85rem;">+ Add Another Invoice</button>
+                    </div>
+
+                    <div class="section-next">
+                        <button type="button" id="btnNextToManufacturer" class="btn-primary">Next: Manufacturer →</button>
+                    </div>
+                </div>
+
+                <!-- Step 3: Manufacturer Details -->
+                <div class="form-section section-hidden" id="sectionManufacturer">
+                    <h3><span class="step-badge">3</span> Manufacturer Details</h3>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="manufacturerSelect">Select Manufacturer</label>
+                            <select id="manufacturerSelect">
+                                <option value="">-- Add New Manufacturer --</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group full-width">
+                            <label for="manufacturerName">Manufacturer Name (M/S) *</label>
+                            <input type="text" id="manufacturerName" required placeholder="e.g., V. P. TEX PRIVATE LIMITED">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group full-width">
+                            <label for="yarnProducer">Yarn Producer *</label>
+                            <input type="text" id="yarnProducer" required placeholder="e.g., MOTHI SPINNERS PRIVATE LIMITED">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="contactPerson">Contact Person *</label>
+                            <input type="text" id="contactPerson" required placeholder="e.g., MR. SHAN BABU">
+                        </div>
+                        <div class="form-group">
+                            <label for="telephone">Telephone *</label>
+                            <input type="text" id="telephone" required placeholder="e.g., +91 9003556066">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="email">Email *</label>
+                            <input type="email" id="email" required placeholder="e.g., info@vptex.in">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 4: Date & Submit -->
+                <div class="form-section section-hidden" id="sectionDate">
+                    <h3><span class="step-badge">4</span> Certificate Date</h3>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="certDate">Certificate Date *</label>
+                            <input type="date" id="certDate" required>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-actions section-hidden" id="sectionActions">
+                    <button type="button" onclick="window.location.href='cert-dashboard.html'" class="btn-secondary">Cancel</button>
+                    <button type="submit" class="btn-primary">Generate Certificate</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+    <script>
+        // Check if user is logged in
+        if (!localStorage.getItem('isLoggedIn')) {
+            window.location.href = 'login.html';
+        }
+
+        // Display next ref number
+        const currentCertNumber = parseInt(localStorage.getItem('currentCertNumber') || '60');
+        document.getElementById('nextRefDisplay').textContent = currentCertNumber + 1;
+
+        // Set today's date as default
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('certDate').value = today;
+
+        // Format date from YYYY-MM-DD to DD/MM/YYYY
+        function formatCertDate(dateString) {
+            const date = new Date(dateString);
+            const day = String(date.getDate()).padStart(2, '0');
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const year = date.getFullYear();
+            return day + '/' + month + '/' + year;
+        }
+
+        // ===== Buyer Presets =====
+        const BUYERS = [
+            { name: 'CERTITUDE', address: 'B-64, SECTOR-83, NOIDA' },
+            { name: 'THE PERFECT FIT', address: 'C-29, SECTOR-63, NOIDA' }
+        ];
+
+        const buyerSelect = document.getElementById('buyerSelect');
+        const buyerNameInput = document.getElementById('buyerName');
+        const buyerAddressInput = document.getElementById('buyerAddress');
+
+        BUYERS.forEach(function(buyer, index) {
+            const option = document.createElement('option');
+            option.value = index;
+            option.textContent = buyer.name;
+            buyerSelect.appendChild(option);
+        });
+
+        buyerSelect.addEventListener('change', function() {
+            const idx = this.value;
+            if (idx === '') {
+                buyerNameInput.value = '';
+                buyerAddressInput.value = '';
+                buyerNameInput.readOnly = false;
+                buyerAddressInput.readOnly = false;
+                buyerNameInput.classList.remove('field-prefilled');
+                buyerAddressInput.classList.remove('field-prefilled');
+            } else {
+                const buyer = BUYERS[parseInt(idx)];
+                buyerNameInput.value = buyer.name;
+                buyerAddressInput.value = buyer.address;
+                buyerNameInput.readOnly = true;
+                buyerAddressInput.readOnly = true;
+                buyerNameInput.classList.add('field-prefilled');
+                buyerAddressInput.classList.add('field-prefilled');
+            }
+        });
+
+        // ===== Manufacturer Presets =====
+        const MANUFACTURERS = [
+            {
+                name: 'V. P. TEX PRIVATE LIMITED',
+                yarnProducer: 'MOTHI SPINNERS PRIVATE LIMITED',
+                contactPerson: 'MR. SHAN BABU',
+                telephone: '+91 9003556066',
+                email: 'info@vptex.in'
+            },
+            {
+                name: 'SHREE SAKHTI VINAYAGAR WEAVES PRIVATE LIMITED',
+                yarnProducer: 'MOTHI SPINNERS PRIVATE LIMITED',
+                contactPerson: 'MR. JAI PRAKASH',
+                telephone: '+91 9360040419, +91 9360940419',
+                email: 'jpmothi@gmail.com'
+            }
+        ];
+
+        const mfgSelect = document.getElementById('manufacturerSelect');
+        const mfgNameInput = document.getElementById('manufacturerName');
+        const yarnInput = document.getElementById('yarnProducer');
+        const contactInput = document.getElementById('contactPerson');
+        const phoneInput = document.getElementById('telephone');
+        const emailInput = document.getElementById('email');
+
+        MANUFACTURERS.forEach(function(mfg, index) {
+            const option = document.createElement('option');
+            option.value = index;
+            option.textContent = mfg.name;
+            mfgSelect.appendChild(option);
+        });
+
+        mfgSelect.addEventListener('change', function() {
+            const idx = this.value;
+            const fields = [mfgNameInput, yarnInput, contactInput, phoneInput, emailInput];
+
+            if (idx === '') {
+                fields.forEach(function(f) {
+                    f.value = '';
+                    f.readOnly = false;
+                    f.classList.remove('field-prefilled');
+                });
+            } else {
+                const mfg = MANUFACTURERS[parseInt(idx)];
+                mfgNameInput.value = mfg.name;
+                yarnInput.value = mfg.yarnProducer;
+                contactInput.value = mfg.contactPerson;
+                phoneInput.value = mfg.telephone;
+                emailInput.value = mfg.email;
+                fields.forEach(function(f) {
+                    f.readOnly = true;
+                    f.classList.add('field-prefilled');
+                });
+            }
+        });
+
+        // ===== Multi-Invoice Support =====
+        let invoiceCount = 1;
+
+        document.getElementById('addInvoiceBtn').addEventListener('click', function() {
+            invoiceCount++;
+            const container = document.getElementById('invoicesContainer');
+            const div = document.createElement('div');
+            div.className = 'invoice-row';
+            div.setAttribute('data-index', invoiceCount - 1);
+            div.innerHTML = `
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                    <h4 style="color: #475569; font-size: 0.95rem; margin: 0;">Invoice ${invoiceCount}</h4>
+                    <button type="button" class="btn-remove-invoice" onclick="removeInvoice(this)" style="background: #ef4444; color: white; border: none; padding: 0.3rem 0.8rem; border-radius: 6px; font-size: 0.8rem; cursor: pointer; font-family: inherit;">Remove</button>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Sales Invoice No. *</label>
+                        <input type="text" class="inv-number" required placeholder="e.g., 541">
+                    </div>
+                    <div class="form-group">
+                        <label>Invoice Date *</label>
+                        <input type="date" class="inv-date" required>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Meters *</label>
+                        <input type="text" class="inv-meters" required placeholder="e.g., 1224.00">
+                    </div>
+                </div>
+            `;
+            container.appendChild(div);
+            div.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        });
+
+        function removeInvoice(btn) {
+            const row = btn.closest('.invoice-row');
+            row.remove();
+            // Re-number remaining invoices
+            const rows = document.querySelectorAll('.invoice-row');
+            rows.forEach(function(r, i) {
+                const heading = r.querySelector('h4');
+                if (heading) heading.textContent = 'Invoice ' + (i + 1);
+            });
+            invoiceCount = rows.length;
+        }
+
+        // ===== Step Navigation =====
+        const sectionFabric = document.getElementById('sectionFabric');
+        const sectionManufacturer = document.getElementById('sectionManufacturer');
+        const sectionDate = document.getElementById('sectionDate');
+        const sectionActions = document.getElementById('sectionActions');
+
+        function revealSection(section) {
+            section.classList.remove('section-hidden');
+            section.classList.add('section-reveal');
+            section.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+
+        // Step 1 → Step 2
+        document.getElementById('btnNextToFabric').addEventListener('click', function() {
+            const name = buyerNameInput.value.trim();
+            const address = buyerAddressInput.value.trim();
+            if (!name || !address) {
+                alert('Please fill in buyer name and address before proceeding.');
+                if (!name) buyerNameInput.focus();
+                else buyerAddressInput.focus();
+                return;
+            }
+            revealSection(sectionFabric);
+            document.getElementById('fabricDescription').focus();
+        });
+
+        // Step 2 → Step 3
+        document.getElementById('btnNextToManufacturer').addEventListener('click', function() {
+            const fabric = document.getElementById('fabricDescription').value.trim();
+            if (!fabric) {
+                alert('Please fill in fabric description before proceeding.');
+                document.getElementById('fabricDescription').focus();
+                return;
+            }
+            // Validate all invoice rows
+            const invNumbers = document.querySelectorAll('.inv-number');
+            const invDates = document.querySelectorAll('.inv-date');
+            const invMeters = document.querySelectorAll('.inv-meters');
+            for (var i = 0; i < invNumbers.length; i++) {
+                if (!invNumbers[i].value.trim() || !invDates[i].value || !invMeters[i].value.trim()) {
+                    alert('Please fill in all invoice details before proceeding.');
+                    invNumbers[i].focus();
+                    return;
+                }
+            }
+            revealSection(sectionManufacturer);
+            revealSection(sectionDate);
+            revealSection(sectionActions);
+        });
+
+        // ===== Form Submission =====
+        document.getElementById('certForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            // Collect invoice rows
+            const invNumbers = document.querySelectorAll('.inv-number');
+            const invDates = document.querySelectorAll('.inv-date');
+            const invMeters = document.querySelectorAll('.inv-meters');
+            var invoices = [];
+            for (var i = 0; i < invNumbers.length; i++) {
+                invoices.push({
+                    invoiceNo: invNumbers[i].value.trim(),
+                    invoiceDate: formatCertDate(invDates[i].value),
+                    meters: invMeters[i].value.trim()
+                });
+            }
+
+            const refNumber = currentCertNumber + 1;
+            const dateStr = formatCertDate(document.getElementById('certDate').value);
+            const certificateNo = 'KKG/' + refNumber + '/' + dateStr;
+
+            const cert = {
+                refNumber: refNumber,
+                date: dateStr,
+                certificateNo: certificateNo,
+                buyerName: buyerNameInput.value.trim(),
+                buyerAddress: buyerAddressInput.value.trim(),
+                fabricDescription: document.getElementById('fabricDescription').value.trim(),
+                invoices: invoices,
+                manufacturerName: mfgNameInput.value.trim(),
+                yarnProducer: yarnInput.value.trim(),
+                contactPerson: contactInput.value.trim(),
+                telephone: phoneInput.value.trim(),
+                email: emailInput.value.trim(),
+                createdBy: localStorage.getItem('currentUser'),
+                createdAt: new Date().toISOString()
+            };
+
+            // Save
+            const certs = JSON.parse(localStorage.getItem('certificates') || '[]');
+            certs.push(cert);
+            localStorage.setItem('certificates', JSON.stringify(certs));
+            localStorage.setItem('currentCertNumber', refNumber.toString());
+
+            alert('Certificate KKG/' + refNumber + ' created successfully!');
+            window.location.href = 'cert-dashboard.html';
+        });
+    </script>
+</body>
+</html>

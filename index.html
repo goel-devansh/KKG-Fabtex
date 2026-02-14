@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KKG FABTEX - Purchase Order System</title>
+    <title>KKG FABTEX - Fabric Management System</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -20,46 +20,78 @@
         </div>
     </nav>
 
-    <!-- Hero Section -->
-    <section class="hero">
-        <div class="hero-bg-pattern"></div>
-        <div class="hero-content animate-fade-up">
-            <div class="hero-badge animate-fade-up delay-1">Purchase Order Management</div>
+    <!-- Hero Banner with Background Image -->
+    <section class="hero-banner">
+        <div class="hero-overlay"></div>
+        <div class="hero-banner-content animate-fade-up">
+            <div class="hero-badge animate-fade-up delay-1">Fabric Management System</div>
             <h1 class="animate-fade-up delay-2">KKG FABTEX</h1>
-            <p class="tagline animate-fade-up delay-3">A Symbol of Trust</p>
-            <p class="description animate-fade-up delay-4">
-                Streamline your fabric procurement process with our<br>
-                professional purchase order management system
+            <p class="hero-tagline animate-fade-up delay-3">A Symbol of Trust</p>
+            <p class="hero-desc animate-fade-up delay-4">
+                Your complete platform for managing purchase orders<br>
+                and Ecovero compliance certificates
             </p>
             <div class="hero-buttons animate-fade-up delay-5">
                 <a href="login.html" class="btn-hero-primary">
-                    Access PO System
+                    Get Started
                     <span class="btn-arrow">&#8594;</span>
                 </a>
             </div>
         </div>
-        <div class="hero-cards">
-            <div class="feature-card animate-fade-up delay-3">
-                <div class="feature-icon-wrap">
-                    <div class="feature-icon">&#128196;</div>
+    </section>
+
+    <!-- Modules Section -->
+    <section class="landing-modules">
+        <div class="landing-modules-inner">
+            <h2 class="section-heading animate-fade-up">What We Offer</h2>
+            <p class="section-subheading animate-fade-up delay-1">Two powerful modules to streamline your textile business operations</p>
+
+            <div class="module-showcase">
+                <!-- PO Module -->
+                <div class="module-showcase-card animate-fade-up delay-2">
+                    <div class="module-showcase-img" style="background-image: url('https://images.unsplash.com/photo-1450101499163-c8848c66ca85?w=600&q=80');">
+                        <div class="module-img-overlay"></div>
+                        <span class="module-tag">Module 1</span>
+                    </div>
+                    <div class="module-showcase-body">
+                        <h3>Purchase Orders</h3>
+                        <p>Create, manage and export professional purchase orders with auto-numbering, supplier presets, and instant PDF generation.</p>
+                        <ul class="module-features">
+                            <li>Auto-incrementing PO numbers</li>
+                            <li>Supplier quick-select presets</li>
+                            <li>Professional PDF export</li>
+                            <li>Search and track all orders</li>
+                        </ul>
+                    </div>
                 </div>
-                <h3>Generate POs</h3>
-                <p>Create professional purchase orders instantly with auto-numbering</p>
-            </div>
-            <div class="feature-card animate-fade-up delay-4">
-                <div class="feature-icon-wrap">
-                    <div class="feature-icon">&#128190;</div>
+
+                <!-- Certificate Module -->
+                <div class="module-showcase-card animate-fade-up delay-3">
+                    <div class="module-showcase-img" style="background-image: url('https://images.unsplash.com/photo-1606722590583-6951b5ea92ad?w=600&q=80');">
+                        <div class="module-img-overlay"></div>
+                        <span class="module-tag">Module 2</span>
+                    </div>
+                    <div class="module-showcase-body">
+                        <h3>Ecovero Certificates</h3>
+                        <p>Generate Ecovero compliance certificates with manufacturer details, multi-invoice support, and instant PDF download.</p>
+                        <ul class="module-features">
+                            <li>Ecovero compliance format</li>
+                            <li>Multi-invoice support</li>
+                            <li>Manufacturer & buyer presets</li>
+                            <li>Auto-generated certificate numbers</li>
+                        </ul>
+                    </div>
                 </div>
-                <h3>Track Orders</h3>
-                <p>View, search and manage all your purchase orders in one place</p>
             </div>
-            <div class="feature-card animate-fade-up delay-5">
-                <div class="feature-icon-wrap">
-                    <div class="feature-icon">&#128202;</div>
-                </div>
-                <h3>Export PDFs</h3>
-                <p>Download POs in professional print-ready PDF format</p>
-            </div>
+        </div>
+    </section>
+
+    <!-- Image Divider -->
+    <section class="image-divider" style="background-image: url('https://images.unsplash.com/photo-1558171813-4c088753af8f?w=1400&q=80');">
+        <div class="image-divider-overlay"></div>
+        <div class="image-divider-content animate-fade-up">
+            <h2>Trusted by Textile Professionals</h2>
+            <p>Simplifying fabric procurement and compliance documentation</p>
         </div>
     </section>
 
@@ -73,15 +105,54 @@
             </div>
             <div class="landing-stat-divider"></div>
             <div class="landing-stat animate-fade-up delay-3">
+                <span class="landing-stat-number" data-count="60">0</span>
+                <span class="landing-stat-plus">+</span>
+                <span class="landing-stat-label">Certificates Issued</span>
+            </div>
+            <div class="landing-stat-divider"></div>
+            <div class="landing-stat animate-fade-up delay-4">
                 <span class="landing-stat-number" data-count="50">0</span>
                 <span class="landing-stat-plus">+</span>
                 <span class="landing-stat-label">Suppliers Managed</span>
             </div>
             <div class="landing-stat-divider"></div>
-            <div class="landing-stat animate-fade-up delay-4">
+            <div class="landing-stat animate-fade-up delay-5">
                 <span class="landing-stat-number" data-count="3">0</span>
                 <span class="landing-stat-plus"></span>
                 <span class="landing-stat-label">Active Users</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- How It Works -->
+    <section class="how-it-works">
+        <div class="how-it-works-inner">
+            <h2 class="section-heading animate-fade-up">How It Works</h2>
+            <p class="section-subheading animate-fade-up delay-1">Simple steps to manage your fabric business</p>
+            <div class="steps-grid">
+                <div class="step-card animate-fade-up delay-2">
+                    <div class="step-number">1</div>
+                    <h4>Login</h4>
+                    <p>Securely access the system with your credentials</p>
+                </div>
+                <div class="step-arrow animate-fade-up delay-2">&#8594;</div>
+                <div class="step-card animate-fade-up delay-3">
+                    <div class="step-number">2</div>
+                    <h4>Select Module</h4>
+                    <p>Choose between Purchase Orders or Ecovero Certificates</p>
+                </div>
+                <div class="step-arrow animate-fade-up delay-3">&#8594;</div>
+                <div class="step-card animate-fade-up delay-4">
+                    <div class="step-number">3</div>
+                    <h4>Fill Details</h4>
+                    <p>Use presets or enter details with guided step-by-step form</p>
+                </div>
+                <div class="step-arrow animate-fade-up delay-4">&#8594;</div>
+                <div class="step-card animate-fade-up delay-5">
+                    <div class="step-number">4</div>
+                    <h4>Download PDF</h4>
+                    <p>Get your professional document ready to print instantly</p>
+                </div>
             </div>
         </div>
     </section>
@@ -94,7 +165,7 @@
                 <h3>Company Information</h3>
                 <p><strong>KKG FABTEX</strong></p>
                 <p>Shed No. 72, Scheme - 1, DSIDC,<br>
-                   Okhla Industrial Area Phase – II,<br>
+                   Okhla Industrial Area Phase - II,<br>
                    New Delhi - 110020</p>
                 <p class="info-meta">GSTIN: 07AAXFK2367H1ZT<br>
                    License No.: 222533</p>

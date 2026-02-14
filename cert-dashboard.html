@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ecovero Certificates - KKG FABTEX</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</head>
+<body>
+    <nav class="navbar dashboard-nav">
+        <div class="nav-container">
+            <div class="logo-section">
+                <img src="assets/logo.png" alt="KKG FABTEX" class="logo-small">
+                <span class="nav-title">Ecovero Certificates</span>
+            </div>
+            <div class="nav-right">
+                <a href="modules.html" class="btn-secondary" style="font-size: 0.85rem; padding: 0.5rem 1.2rem;">← Modules</a>
+                <span class="user-name" id="userName"></span>
+                <button onclick="logout()" class="btn-logout">Logout</button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="dashboard-container">
+        <div class="dashboard-header">
+            <h1>Ecovero Certificates Dashboard</h1>
+            <div style="display: flex; gap: 1rem;">
+                <button onclick="removeCert()" class="btn-secondary" style="background: #dc2626; color: white; border: none;">🗑️ Delete Certificate</button>
+                <a href="create-certificate.html" class="btn-primary">+ Create New Certificate</a>
+            </div>
+        </div>
+
+        <div class="stats-container">
+            <div class="stat-card">
+                <div class="stat-number" id="totalCerts">0</div>
+                <div class="stat-label">Total Certificates</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="nextCertNumber">61</div>
+                <div class="stat-label">Next Ref. No.</div>
+            </div>
+        </div>
+
+        <div class="po-list-section">
+            <h2>Recent Certificates</h2>
+            <div class="search-bar">
+                <input type="text" id="searchCert" placeholder="Search by ref number, buyer name, manufacturer...">
+            </div>
+            <div id="certList" class="po-list">
+                <!-- Certificates will be loaded here -->
+            </div>
+            <div id="emptyState" class="empty-state">
+                <p>📜 No certificates yet</p>
+                <p>Create your first Ecovero certificate to get started!</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+    <script src="cert-pdf-generator.js"></script>
+    <script>
+        // Check if user is logged in
+        if (!localStorage.getItem('isLoggedIn')) {
+            window.location.href = 'login.html';
+        }
+
+        // Display username
+        document.getElementById('userName').textContent = localStorage.getItem('currentUser');
+
+        // Load and display Certificates
+        loadCerts();
+
+        function loadCerts() {
+            const certs = JSON.parse(localStorage.getItem('certificates') || '[]');
+            const certList = document.getElementById('certList');
+            const emptyState = document.getElementById('emptyState');
+            const totalCertsEl = document.getElementById('totalCerts');
+            const nextCertEl = document.getElementById('nextCertNumber');
+
+            totalCertsEl.textContent = certs.length;
+
+            // Get next cert number
+            const currentCertNumber = parseInt(localStorage.getItem('currentCertNumber') || '60');
+            nextCertEl.textContent = currentCertNumber + 1;
+
+            if (certs.length === 0) {
+                emptyState.style.display = 'block';
+                certList.style.display = 'none';
+                return;
+            }
+
+            emptyState.style.display = 'none';
+            certList.style.display = 'block';
+
+            // Sort by ref number (newest first)
+            certs.sort((a, b) => b.refNumber - a.refNumber);
+
+            certList.innerHTML = certs.map(cert => {
+                // Build invoice summary
+                const invSummary = cert.invoices.map(inv => `Inv#${inv.invoiceNo} (${inv.meters}m)`).join(', ');
+                return `
+                <div class="po-card">
+                    <div class="po-header">
+                        <div>
+                            <h3>KKG/${cert.refNumber}</h3>
+                            <p class="po-date">Dated: ${cert.date} | Created by: ${cert.createdBy}</p>
+                        </div>
+                        <div class="po-actions">
+                            <button onclick="viewCert(${cert.refNumber})" class="btn-view">View</button>
+                            <button onclick="downloadCert(${cert.refNumber})" class="btn-download">Download PDF</button>
+                        </div>
+                    </div>
+                    <div class="po-details">
+                        <p><strong>Buyer:</strong> ${cert.buyerName}</p>
+                        <p><strong>Fabric:</strong> ${cert.fabricDescription.substring(0, 80)}${cert.fabricDescription.length > 80 ? '...' : ''}</p>
+                        <p><strong>Invoice(s):</strong> ${invSummary}</p>
+                        <p><strong>Manufacturer:</strong> ${cert.manufacturerName}</p>
+                    </div>
+                </div>
+            `}).join('');
+        }
+
+        function viewCert(refNumber) {
+            const certs = JSON.parse(localStorage.getItem('certificates') || '[]');
+            const cert = certs.find(c => c.refNumber === refNumber);
+
+            if (cert) {
+                const invDetails = cert.invoices.map(inv =>
+                    `  Invoice No. ${inv.invoiceNo} | Dated ${inv.invoiceDate} | ${inv.meters} Meters`
+                ).join('\n');
+
+                const details = `
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CERTIFICATE KKG/${cert.refNumber}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Date: ${cert.date}
+Certificate No: ${cert.certificateNo}
+Created by: ${cert.createdBy}
+
+BUYER
+────────────────────
+${cert.buyerName}
+${cert.buyerAddress}
+
+FABRIC
+────────────────────
+${cert.fabricDescription}
+
+INVOICE(S)
+────────────────────
+${invDetails}
+
+MANUFACTURER
+────────────────────
+${cert.manufacturerName}
+Yarn Producer: ${cert.yarnProducer}
+Contact: ${cert.contactPerson}
+Phone: ${cert.telephone}
+Email: ${cert.email}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+                `;
+                alert(details);
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem('isLoggedIn');
+            localStorage.removeItem('currentUser');
+            window.location.href = 'login.html';
+        }
+
+        function removeCert() {
+            const certs = JSON.parse(localStorage.getItem('certificates') || '[]');
+
+            if (certs.length === 0) {
+                alert('No certificates to remove!');
+                return;
+            }
+
+            const refStr = prompt('Enter the Ref. No. you want to delete (number only, e.g. 61):');
+
+            if (!refStr) {
+                return;
+            }
+
+            const refNumber = parseInt(refStr);
+
+            if (isNaN(refNumber)) {
+                alert('❌ Invalid Ref. No. entered!');
+                return;
+            }
+
+            const certToDelete = certs.find(c => c.refNumber === refNumber);
+
+            if (!certToDelete) {
+                alert(`❌ Certificate KKG/${refNumber} not found.`);
+                return;
+            }
+
+            const confirmMessage = `⚠️ CONFIRM DELETION:\n\n` +
+                `Certificate KKG/${certToDelete.refNumber}\n` +
+                `Buyer: ${certToDelete.buyerName}\n` +
+                `Date: ${certToDelete.date}\n\n` +
+                `This action CANNOT be undone!\n\n` +
+                `Type "DELETE" to confirm:`;
+
+            const confirmation = prompt(confirmMessage);
+
+            if (confirmation === 'DELETE') {
+                const updatedCerts = certs.filter(c => c.refNumber !== refNumber);
+                localStorage.setItem('certificates', JSON.stringify(updatedCerts));
+
+                // Update cert counter based on which cert was deleted
+                if (updatedCerts.length === 0) {
+                    localStorage.setItem('currentCertNumber', (refNumber - 1).toString());
+                } else {
+                    const highestRemaining = Math.max(...updatedCerts.map(c => c.refNumber));
+                    if (refNumber > highestRemaining) {
+                        localStorage.setItem('currentCertNumber', (refNumber - 1).toString());
+                    } else {
+                        localStorage.setItem('currentCertNumber', highestRemaining.toString());
+                    }
+                }
+
+                alert(`✅ Certificate KKG/${refNumber} has been deleted successfully!`);
+                location.reload();
+            } else {
+                alert('❌ Deletion cancelled. Confirmation text did not match.');
+            }
+        }
+
+        // Search functionality
+        document.getElementById('searchCert').addEventListener('input', function(e) {
+            const searchTerm = e.target.value.toLowerCase();
+            const certCards = document.querySelectorAll('.po-card');
+
+            certCards.forEach(card => {
+                const text = card.textContent.toLowerCase();
+                card.style.display = text.includes(searchTerm) ? 'block' : 'none';
+            });
+        });
+    </script>
+</body>
+</html>

@@ -280,10 +280,19 @@
         const sectionTerms = document.getElementById('sectionTerms');
         const sectionActions = document.getElementById('sectionActions');
 
-        function revealSection(section) {
-            section.classList.remove('section-hidden');
-            section.classList.add('section-reveal');
-            section.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        function switchSection(currentSection, nextSections, focusEl) {
+            currentSection.classList.add('section-fade-out');
+            currentSection.addEventListener('animationend', function handler() {
+                currentSection.removeEventListener('animationend', handler);
+                currentSection.classList.add('section-hidden');
+                currentSection.classList.remove('section-fade-out');
+                nextSections.forEach(function(sec) {
+                    sec.classList.remove('section-hidden');
+                    sec.classList.add('section-reveal');
+                });
+                if (focusEl) focusEl.focus();
+                nextSections[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }, { once: true });
         }
 
         // Step 1 → Step 2: Validate supplier info
@@ -298,8 +307,7 @@
                 return;
             }
 
-            revealSection(sectionItems);
-            document.getElementById('itemDescription').focus();
+            switchSection(document.getElementById('sectionSupplier'), [sectionItems], document.getElementById('itemDescription'));
         });
 
         // Step 2 → Step 3: Validate item details
@@ -326,9 +334,7 @@
                 return;
             }
 
-            revealSection(sectionTerms);
-            revealSection(sectionActions);
-            document.getElementById('deliveryDate').focus();
+            switchSection(sectionItems, [sectionTerms, sectionActions], document.getElementById('deliveryDate'));
         });
 
         // Handle form submission
