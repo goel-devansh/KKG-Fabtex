@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create PO - KKG FABTEX</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <nav class="navbar dashboard-nav">
+        <div class="nav-container">
+            <div class="logo-section">
+                <img src="assets/logo.png" alt="KKG FABTEX" class="logo-small">
+                <span class="nav-title">Create Purchase Order</span>
+            </div>
+            <div class="nav-right">
+                <a href="dashboard.html" class="btn-secondary">← Back to Dashboard</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="form-container">
+        <div class="form-box">
+            <h2>New Purchase Order</h2>
+            <p class="next-po-info">Next PO Number: <strong id="nextPODisplay">260</strong></p>
+            
+            <form id="poForm">
+                <div class="form-section" id="sectionSupplier">
+                    <h3><span class="step-badge">1</span> Supplier Information</h3>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="supplierSelect">Select Supplier *</label>
+                            <select id="supplierSelect">
+                                <option value="">-- Add New Supplier --</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="supplierName">Supplier's Name *</label>
+                            <input type="text" id="supplierName" required placeholder="Enter supplier name">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="supplierAddress">Address *</label>
+                            <textarea id="supplierAddress" required placeholder="Enter supplier address" rows="2"></textarea>
+                        </div>
+                    </div>
+                    <div class="section-next">
+                        <button type="button" id="btnNextToItems" class="btn-primary">Next: Item Details →</button>
+                    </div>
+                </div>
+
+                <div class="form-section section-hidden" id="sectionItems">
+                    <h3><span class="step-badge">2</span> Item Details</h3>
+                    <div class="form-row">
+                        <div class="form-group full-width">
+                            <label for="itemDescription">Item Description *</label>
+                            <textarea id="itemDescription" required placeholder="e.g., GREIGE WOVEN FABRICS 100% ORGANIC COTTON VOIL 80x72 63" ORGANIC" rows="3"></textarea>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="quantity">Quantity (MTS) *</label>
+                            <div class="input-with-suffix">
+                                <input type="text" id="quantity" required placeholder="e.g., 3500" inputmode="numeric">
+                                <span class="input-suffix">MTS</span>
+                            </div>
+                            <span id="quantityError" class="field-error"></span>
+                        </div>
+                        <div class="form-group">
+                            <label for="rate">Rate (Rs) *</label>
+                            <input type="number" id="rate" step="0.01" required placeholder="e.g., 46.00">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="remarksSelect">Remarks</label>
+                            <select id="remarksSelect">
+                                <option value="98L">98L</option>
+                                <option value="100L">100L</option>
+                                <option value="custom">-- Enter Manually --</option>
+                            </select>
+                            <input type="text" id="remarksManual" placeholder="Enter remarks" style="display: none; margin-top: 0.5rem;">
+                        </div>
+                    </div>
+                    <div class="section-next">
+                        <button type="button" id="btnNextToTerms" class="btn-primary">Next: Terms & Delivery →</button>
+                    </div>
+                </div>
+
+                <div class="form-section section-hidden" id="sectionTerms">
+                    <h3><span class="step-badge">3</span> Terms & Delivery</h3>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="poDate">PO Date *</label>
+                            <input type="date" id="poDate" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="deliveryDate">Delivery Date *</label>
+                            <input type="text" id="deliveryDate" required placeholder="e.g., IMMEDIATE or specific date">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="paymentTermsSelect">Payment Terms *</label>
+                            <select id="paymentTermsSelect">
+                                <option value="60 DAYS">60 DAYS</option>
+                                <option value="90 DAYS" selected>90 DAYS</option>
+                                <option value="120 DAYS">120 DAYS</option>
+                                <option value="custom">-- Enter Manually --</option>
+                            </select>
+                            <input type="text" id="paymentTermsManual" placeholder="Enter payment terms" style="display: none; margin-top: 0.5rem;">
+                        </div>
+                        <div class="form-group">
+                            <!-- Empty to maintain grid layout -->
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-actions section-hidden" id="sectionActions">
+                    <button type="button" onclick="window.location.href='dashboard.html'" class="btn-secondary">Cancel</button>
+                    <button type="submit" class="btn-primary">Generate PO</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Check if user is logged in
+        if (!localStorage.getItem('isLoggedIn')) {
+            window.location.href = 'login.html';
+        }
+        
+        // Display next PO number
+        const currentPONumber = parseInt(localStorage.getItem('currentPONumber') || '259');
+        document.getElementById('nextPODisplay').textContent = currentPONumber + 1;
+        
+        // Set today's date as default
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('poDate').value = today;
+        
+        // Format date from YYYY-MM-DD to DD/MM/YYYY
+        function formatPODate(dateString) {
+            const date = new Date(dateString);
+            const day = String(date.getDate()).padStart(2, '0');
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const year = date.getFullYear();
+            return `${day}/${month}/${year}`;
+        }
+        
+        // Hardcoded supplier list
+        const SUPPLIERS = [
+            { name: 'JHEEVA REKHAA TEXTILES', address: 'TAMIL NADU - 625512' },
+            { name: 'SKY WEAVES', address: 'TIRUPUR, TAMIL NADU - 641605' },
+            { name: 'MADURAI WEAVING MILLS', address: 'TAMIL NADU' },
+            { name: 'MAHESH TEXFAB', address: 'ICHALKARANJI, MAHARASHTRA - 416115' }
+        ];
+
+        // Populate supplier dropdown
+        const supplierSelect = document.getElementById('supplierSelect');
+        const supplierNameInput = document.getElementById('supplierName');
+        const supplierAddressInput = document.getElementById('supplierAddress');
+
+        SUPPLIERS.forEach(function(supplier, index) {
+            const option = document.createElement('option');
+            option.value = index;
+            option.textContent = supplier.name;
+            supplierSelect.appendChild(option);
+        });
+
+        // Handle supplier selection change
+        supplierSelect.addEventListener('change', function() {
+            const selectedIndex = this.value;
+
+            if (selectedIndex === '') {
+                supplierNameInput.value = '';
+                supplierAddressInput.value = '';
+                supplierNameInput.readOnly = false;
+                supplierAddressInput.readOnly = false;
+                supplierNameInput.classList.remove('field-prefilled');
+                supplierAddressInput.classList.remove('field-prefilled');
+                supplierNameInput.placeholder = 'Enter supplier name';
+                supplierAddressInput.placeholder = 'Enter supplier address';
+            } else {
+                const supplier = SUPPLIERS[parseInt(selectedIndex)];
+                supplierNameInput.value = supplier.name;
+                supplierAddressInput.value = supplier.address;
+                supplierNameInput.readOnly = true;
+                supplierAddressInput.readOnly = true;
+                supplierNameInput.classList.add('field-prefilled');
+                supplierAddressInput.classList.add('field-prefilled');
+                supplierNameInput.placeholder = '';
+                supplierAddressInput.placeholder = '';
+            }
+        });
+
+        // Remarks dropdown handler
+        const remarksSelect = document.getElementById('remarksSelect');
+        const remarksManual = document.getElementById('remarksManual');
+
+        remarksSelect.addEventListener('change', function() {
+            if (this.value === 'custom') {
+                remarksManual.style.display = 'block';
+                remarksManual.focus();
+            } else {
+                remarksManual.style.display = 'none';
+                remarksManual.value = '';
+            }
+        });
+
+        // Payment Terms dropdown handler
+        const paymentTermsSelect = document.getElementById('paymentTermsSelect');
+        const paymentTermsManual = document.getElementById('paymentTermsManual');
+
+        paymentTermsSelect.addEventListener('change', function() {
+            if (this.value === 'custom') {
+                paymentTermsManual.style.display = 'block';
+                paymentTermsManual.required = true;
+                paymentTermsManual.focus();
+            } else {
+                paymentTermsManual.style.display = 'none';
+                paymentTermsManual.required = false;
+                paymentTermsManual.value = '';
+            }
+        });
+
+        // Quantity validation - numbers only (allow commas for formatting)
+        const quantityInput = document.getElementById('quantity');
+        const quantityError = document.getElementById('quantityError');
+
+        quantityInput.addEventListener('input', function() {
+            const raw = this.value.replace(/,/g, '');
+            if (raw !== '' && !/^\d+$/.test(raw)) {
+                quantityError.textContent = 'Please enter numbers only';
+                quantityError.style.display = 'block';
+                this.classList.add('input-error');
+            } else {
+                quantityError.textContent = '';
+                quantityError.style.display = 'none';
+                this.classList.remove('input-error');
+            }
+        });
+
+        // Step navigation
+        const sectionItems = document.getElementById('sectionItems');
+        const sectionTerms = document.getElementById('sectionTerms');
+        const sectionActions = document.getElementById('sectionActions');
+
+        function revealSection(section) {
+            section.classList.remove('section-hidden');
+            section.classList.add('section-reveal');
+            section.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+
+        // Step 1 → Step 2: Validate supplier info
+        document.getElementById('btnNextToItems').addEventListener('click', function() {
+            const name = supplierNameInput.value.trim();
+            const address = supplierAddressInput.value.trim();
+
+            if (!name || !address) {
+                alert('Please fill in supplier name and address before proceeding.');
+                if (!name) supplierNameInput.focus();
+                else supplierAddressInput.focus();
+                return;
+            }
+
+            revealSection(sectionItems);
+            document.getElementById('itemDescription').focus();
+        });
+
+        // Step 2 → Step 3: Validate item details
+        document.getElementById('btnNextToTerms').addEventListener('click', function() {
+            const desc = document.getElementById('itemDescription').value.trim();
+            const qty = quantityInput.value.trim();
+            const rate = document.getElementById('rate').value.trim();
+
+            if (!desc || !qty || !rate) {
+                alert('Please fill in item description, quantity, and rate before proceeding.');
+                if (!desc) document.getElementById('itemDescription').focus();
+                else if (!qty) quantityInput.focus();
+                else document.getElementById('rate').focus();
+                return;
+            }
+
+            // Also validate quantity is numeric
+            const qtyClean = qty.replace(/,/g, '');
+            if (!/^\d+$/.test(qtyClean)) {
+                quantityError.textContent = 'Please enter numbers only';
+                quantityError.style.display = 'block';
+                quantityInput.classList.add('input-error');
+                quantityInput.focus();
+                return;
+            }
+
+            revealSection(sectionTerms);
+            revealSection(sectionActions);
+            document.getElementById('deliveryDate').focus();
+        });
+
+        // Handle form submission
+        document.getElementById('poForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            // Validate quantity is numeric
+            const qtyRaw = quantityInput.value.replace(/,/g, '');
+            if (!/^\d+$/.test(qtyRaw)) {
+                quantityError.textContent = 'Please enter numbers only';
+                quantityError.style.display = 'block';
+                quantityInput.classList.add('input-error');
+                quantityInput.focus();
+                return;
+            }
+
+            // Build quantity string with MTS
+            const quantityValue = quantityInput.value.trim() + ' MTS';
+
+            // Get remarks value
+            const remarksValue = remarksSelect.value === 'custom' ? remarksManual.value : remarksSelect.value;
+
+            // Get payment terms value
+            const paymentTermsValue = paymentTermsSelect.value === 'custom' ? paymentTermsManual.value : paymentTermsSelect.value;
+
+            // Get form values
+            const po = {
+                poNumber: currentPONumber + 1,
+                date: formatPODate(document.getElementById('poDate').value),
+                supplierName: document.getElementById('supplierName').value,
+                supplierAddress: document.getElementById('supplierAddress').value,
+                itemDescription: document.getElementById('itemDescription').value,
+                quantity: quantityValue,
+                rate: document.getElementById('rate').value,
+                remarks: remarksValue,
+                deliveryDate: document.getElementById('deliveryDate').value,
+                paymentTerms: paymentTermsValue,
+                createdBy: localStorage.getItem('currentUser'),
+                createdAt: new Date().toISOString()
+            };
+            
+            // Get existing POs
+            const pos = JSON.parse(localStorage.getItem('purchaseOrders') || '[]');
+            
+            // Add new PO
+            pos.push(po);
+            
+            // Save to localStorage
+            localStorage.setItem('purchaseOrders', JSON.stringify(pos));
+            localStorage.setItem('currentPONumber', po.poNumber.toString());
+            
+            // Show success and redirect
+            alert(`Purchase Order #${po.poNumber} created successfully!`);
+            window.location.href = 'dashboard.html';
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dir:*)",
+      "Bash(powershell -Command \"$word = New-Object -ComObject Word.Application; $word.Visible = $false; $doc = $word.Documents.Open\\(''C:\\\\Users\\\\DevanshGoel\\\\Downloads\\\\Letter_Head_KKG_Purchase_Order_20251106_JHEEVA_2.docx''\\); Write-Output $doc.Content.Text; $doc.Close\\([ref]$false\\); $word.Quit\\(\\)\")",
+      "Bash(powershell -File - <<'PSEOF'\n$word = New-Object -ComObject Word.Application\n$word.Visible = $false\n\n$files = @\\(\n    'C:\\\\Users\\\\DevanshGoel\\\\Downloads\\\\Letter_Head_KKG_Purchase_Order_20251106_JHEEVA_2.docx',\n    'C:\\\\Users\\\\DevanshGoel\\\\Downloads\\\\Letter_Head_KKG_Purchase_Order_20251215_SKY.docx',\n    'C:\\\\Users\\\\DevanshGoel\\\\Downloads\\\\Letter_Head_KKG_Purchase_Order_20251107_MADURAI_2.docx',\n    'C:\\\\Users\\\\DevanshGoel\\\\Downloads\\\\Letter_Head_KKG_Purchase_Order_20260107_MAHESH.docx'\n\\)\n\nforeach \\($f in $files\\) {\n    Write-Output \"===== FILE: $f =====\"\n    $doc = $word.Documents.Open\\($f\\)\n    Write-Output $doc.Content.Text\n    $doc.Close\\($false\\)\n    Write-Output \"\"\n}\n\n$word.Quit\\(\\)\nPSEOF)"
+    ]
+  }
+}

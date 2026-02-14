@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Logo to Base64 Converter</title>
+</head>
+<body>
+    <h2>Convert Logo to Base64</h2>
+    <input type="file" id="logoInput" accept="image/*">
+    <br><br>
+    <button onclick="convertLogo()">Convert</button>
+    <br><br>
+    <textarea id="base64Output" rows="10" cols="80" placeholder="Base64 code will appear here..."></textarea>
+    <br>
+    <button onclick="copyToClipboard()">Copy to Clipboard</button>
+
+    <script>
+        function convertLogo() {
+            const input = document.getElementById('logoInput');
+            const file = input.files[0];
+            
+            if (!file) {
+                alert('Please select a logo file first!');
+                return;
+            }
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                document.getElementById('base64Output').value = e.target.result;
+                alert('Conversion complete! Now click "Copy to Clipboard"');
+            };
+            reader.readAsDataURL(file);
+        }
+        
+        function copyToClipboard() {
+            const textarea = document.getElementById('base64Output');
+            textarea.select();
+            document.execCommand('copy');
+            alert('Base64 code copied! Now you can paste it into the PDF generator.');
+        }
+    </script>
+</body>
+</html>
