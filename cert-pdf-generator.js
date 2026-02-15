@@ -95,10 +95,10 @@ function generateCertPDF(cert) {
     doc.text(certNoText, certNoX, yPosition);
     doc.line(certNoX, yPosition + 1, certNoX + certNoWidth, yPosition + 1);
 
-    yPosition += 15;
+    yPosition += 16;
 
     // ===== Certificate Body =====
-    doc.setFontSize(10);
+    doc.setFontSize(11);
     doc.setFont('helvetica', 'normal');
 
     // Build invoice text
@@ -122,35 +122,41 @@ function generateCertPDF(cert) {
     var bodyText = 'THIS IS TO CERTIFY THAT ' +
         cert.fabricDescription.toUpperCase() +
         ' FABRIC IS SUPPLIED TO M/S ' +
-        cert.buyerName.toUpperCase() + ' ' +
+        cert.buyerName.toUpperCase() + ', ' +
         cert.buyerAddress.toUpperCase() + ' ' +
         invoiceText +
-        ' ARE ECOVERO COMPLIANT GOODS MADE USING ECOVERO FIBERS FROM LENZING. THE GOOD HAVE BEEN MANUFACTURED BY M/S ' +
+        ' ARE ECOVERO COMPLIANT GOODS MADE USING ECOVERO FIBERS FROM LENZING. THE GOODS HAVE BEEN MANUFACTURED BY M/S ' +
         cert.manufacturerName.toUpperCase() +
         ' AND YARN PRODUCER IS ' +
         cert.yarnProducer.toUpperCase() + '.';
 
-    // Wrap and render body text
+    // Wrap and render body text with proper line height
     var bodyMaxWidth = pageWidth - 2 * margin;
     var bodyLines = doc.splitTextToSize(bodyText, bodyMaxWidth);
-    doc.text(bodyLines, margin, yPosition);
-    yPosition += bodyLines.length * 5 + 8;
+    var lineHeight = 7;
+    for (var i = 0; i < bodyLines.length; i++) {
+        doc.text(bodyLines[i], margin, yPosition);
+        yPosition += lineHeight;
+    }
+    yPosition += 12;
 
     // Contact Person
+    doc.setFontSize(11);
     doc.setFont('helvetica', 'bold');
     doc.text('CONTACT PERSON – ' + cert.contactPerson.toUpperCase(), margin, yPosition);
-    yPosition += 6;
+    yPosition += 9;
 
     doc.text('TELEPHONE NUMBER – ' + cert.telephone, margin, yPosition);
-    yPosition += 6;
+    yPosition += 9;
 
     doc.text('EMAIL ID – ' + cert.email, margin, yPosition);
-    yPosition += 25;
+    yPosition += 30;
 
     // Signature
+    doc.setFontSize(11);
     doc.setFont('helvetica', 'normal');
     doc.text('FOR KKG FABTEX', rightMargin, yPosition, { align: 'right' });
-    yPosition += 20;
+    yPosition += 22;
     doc.text('AUTHORISED SIGNATORY', rightMargin, yPosition, { align: 'right' });
 
     // Save PDF

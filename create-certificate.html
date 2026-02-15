@@ -73,8 +73,8 @@
                                     <input type="text" class="inv-number" required placeholder="e.g., 521">
                                 </div>
                                 <div class="form-group">
-                                    <label>Invoice Date (DD/MM/YYYY) *</label>
-                                    <input type="text" class="inv-date" required placeholder="e.g., 15/02/2026" maxlength="10">
+                                    <label>Invoice Date *</label>
+                                    <input type="date" class="inv-date" required>
                                 </div>
                             </div>
                             <div class="form-row">
@@ -113,8 +113,16 @@
                         </div>
                     </div>
                     <div class="form-row">
+                        <div class="form-group">
+                            <label for="yarnProducerSelect">Select Yarn Producer</label>
+                            <select id="yarnProducerSelect">
+                                <option value="">-- Add New Yarn Producer --</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row">
                         <div class="form-group full-width">
-                            <label for="yarnProducer">Yarn Producer *</label>
+                            <label for="yarnProducer">Yarn Producer Name *</label>
                             <input type="text" id="yarnProducer" required placeholder="e.g., MOTHI SPINNERS PRIVATE LIMITED">
                         </div>
                     </div>
@@ -141,8 +149,8 @@
                     <h3><span class="step-badge">4</span> Certificate Date</h3>
                     <div class="form-row">
                         <div class="form-group">
-                            <label for="certDate">Certificate Date (DD/MM/YYYY) *</label>
-                            <input type="text" id="certDate" required placeholder="e.g., 15/02/2026" maxlength="10">
+                            <label for="certDate">Certificate Date *</label>
+                            <input type="date" id="certDate" required>
                         </div>
                     </div>
                 </div>
@@ -166,10 +174,18 @@
         const currentCertNumber = parseInt(localStorage.getItem('currentCertNumber') || '60');
         document.getElementById('nextRefDisplay').textContent = currentCertNumber + 1;
 
-        // Set today's date as default in DD/MM/YYYY format
-        const todayDate = new Date();
-        const todayStr = String(todayDate.getDate()).padStart(2, '0') + '/' + String(todayDate.getMonth() + 1).padStart(2, '0') + '/' + todayDate.getFullYear();
-        document.getElementById('certDate').value = todayStr;
+        // Set today's date as default
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('certDate').value = today;
+
+        // Format date from YYYY-MM-DD to DD/MM/YYYY
+        function formatCertDate(dateString) {
+            const date = new Date(dateString);
+            const day = String(date.getDate()).padStart(2, '0');
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const year = date.getFullYear();
+            return day + '/' + month + '/' + year;
+        }
 
         // ===== Buyer Presets =====
         const BUYERS = [
@@ -212,14 +228,12 @@
         const MANUFACTURERS = [
             {
                 name: 'V. P. TEX PRIVATE LIMITED',
-                yarnProducer: 'MOTHI SPINNERS PRIVATE LIMITED',
                 contactPerson: 'MR. SHAN BABU',
                 telephone: '+91 9003556066',
                 email: 'info@vptex.in'
             },
             {
                 name: 'SHREE SAKHTI VINAYAGAR WEAVES PRIVATE LIMITED',
-                yarnProducer: 'MOTHI SPINNERS PRIVATE LIMITED',
                 contactPerson: 'MR. JAI PRAKASH',
                 telephone: '+91 9360040419, +91 9360940419',
                 email: 'jpmothi@gmail.com'
@@ -242,7 +256,7 @@
 
         mfgSelect.addEventListener('change', function() {
             const idx = this.value;
-            const fields = [mfgNameInput, yarnInput, contactInput, phoneInput, emailInput];
+            const fields = [mfgNameInput, contactInput, phoneInput, emailInput];
 
             if (idx === '') {
                 fields.forEach(function(f) {
@@ -253,7 +267,6 @@
             } else {
                 const mfg = MANUFACTURERS[parseInt(idx)];
                 mfgNameInput.value = mfg.name;
-                yarnInput.value = mfg.yarnProducer;
                 contactInput.value = mfg.contactPerson;
                 phoneInput.value = mfg.telephone;
                 emailInput.value = mfg.email;
@@ -261,6 +274,34 @@
                     f.readOnly = true;
                     f.classList.add('field-prefilled');
                 });
+            }
+        });
+
+        // ===== Yarn Producer Presets =====
+        const YARN_PRODUCERS = [
+            'MOTHI SPINNERS PRIVATE LIMITED',
+            'RAJLAKSHMI COTTON MILLS PVT LTD'
+        ];
+
+        const yarnSelect = document.getElementById('yarnProducerSelect');
+
+        YARN_PRODUCERS.forEach(function(yp, index) {
+            const option = document.createElement('option');
+            option.value = index;
+            option.textContent = yp;
+            yarnSelect.appendChild(option);
+        });
+
+        yarnSelect.addEventListener('change', function() {
+            const idx = this.value;
+            if (idx === '') {
+                yarnInput.value = '';
+                yarnInput.readOnly = false;
+                yarnInput.classList.remove('field-prefilled');
+            } else {
+                yarnInput.value = YARN_PRODUCERS[parseInt(idx)];
+                yarnInput.readOnly = true;
+                yarnInput.classList.add('field-prefilled');
             }
         });
 
@@ -284,8 +325,8 @@
                         <input type="text" class="inv-number" required placeholder="e.g., 541">
                     </div>
                     <div class="form-group">
-                        <label>Invoice Date (DD/MM/YYYY) *</label>
-                        <input type="text" class="inv-date" required placeholder="e.g., 15/02/2026" maxlength="10">
+                        <label>Invoice Date *</label>
+                        <input type="date" class="inv-date" required>
                     </div>
                 </div>
                 <div class="form-row">
@@ -394,13 +435,13 @@
             for (var i = 0; i < invNumbers.length; i++) {
                 invoices.push({
                     invoiceNo: invNumbers[i].value.trim(),
-                    invoiceDate: invDates[i].value.trim(),
+                    invoiceDate: formatCertDate(invDates[i].value),
                     meters: invMeters[i].value.trim()
                 });
             }
 
             const refNumber = currentCertNumber + 1;
-            const dateStr = document.getElementById('certDate').value.trim();
+            const dateStr = formatCertDate(document.getElementById('certDate').value);
             const certificateNo = 'KKG/' + refNumber + '/' + dateStr;
 
             const cert = {
