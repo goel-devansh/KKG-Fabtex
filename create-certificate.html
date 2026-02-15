@@ -39,14 +39,14 @@
                             </select>
                         </div>
                     </div>
-                    <div class="form-row">
+                    <div class="form-row" id="buyerFieldsRow" style="display: none;">
                         <div class="form-group">
                             <label for="buyerName">Buyer Name (M/S) *</label>
-                            <input type="text" id="buyerName" required placeholder="Enter buyer name">
+                            <input type="text" id="buyerName" placeholder="Enter buyer name">
                         </div>
                         <div class="form-group">
                             <label for="buyerAddress">Buyer Address *</label>
-                            <input type="text" id="buyerAddress" required placeholder="Enter buyer address">
+                            <input type="text" id="buyerAddress" placeholder="Enter buyer address">
                         </div>
                     </div>
                     <div class="section-next">
@@ -106,10 +106,10 @@
                             </select>
                         </div>
                     </div>
-                    <div class="form-row">
+                    <div class="form-row" id="manufacturerNameRow" style="display: none;">
                         <div class="form-group full-width">
                             <label for="manufacturerName">Manufacturer Name (M/S) *</label>
-                            <input type="text" id="manufacturerName" required placeholder="Enter manufacturer name">
+                            <input type="text" id="manufacturerName" placeholder="Enter manufacturer name">
                         </div>
                     </div>
                     <div class="form-row">
@@ -120,10 +120,10 @@
                             </select>
                         </div>
                     </div>
-                    <div class="form-row">
+                    <div class="form-row" id="yarnProducerNameRow" style="display: none;">
                         <div class="form-group full-width">
                             <label for="yarnProducer">Yarn Producer Name *</label>
-                            <input type="text" id="yarnProducer" required placeholder="Enter yarn producer name">
+                            <input type="text" id="yarnProducer" placeholder="Enter yarn producer name">
                         </div>
                     </div>
                     <div class="form-row">
@@ -196,6 +196,7 @@
         const buyerSelect = document.getElementById('buyerSelect');
         const buyerNameInput = document.getElementById('buyerName');
         const buyerAddressInput = document.getElementById('buyerAddress');
+        const buyerFieldsRow = document.getElementById('buyerFieldsRow');
 
         BUYERS.forEach(function(buyer, index) {
             const option = document.createElement('option');
@@ -207,6 +208,8 @@
         buyerSelect.addEventListener('change', function() {
             const idx = this.value;
             if (idx === '') {
+                // "Add New Buyer" — show name/address fields
+                buyerFieldsRow.style.display = '';
                 buyerNameInput.value = '';
                 buyerAddressInput.value = '';
                 buyerNameInput.readOnly = false;
@@ -214,13 +217,11 @@
                 buyerNameInput.classList.remove('field-prefilled');
                 buyerAddressInput.classList.remove('field-prefilled');
             } else {
+                // Preset selected — hide fields, auto-fill
+                buyerFieldsRow.style.display = 'none';
                 const buyer = BUYERS[parseInt(idx)];
                 buyerNameInput.value = buyer.name;
                 buyerAddressInput.value = buyer.address;
-                buyerNameInput.readOnly = true;
-                buyerAddressInput.readOnly = true;
-                buyerNameInput.classList.add('field-prefilled');
-                buyerAddressInput.classList.add('field-prefilled');
             }
         });
 
@@ -242,7 +243,9 @@
 
         const mfgSelect = document.getElementById('manufacturerSelect');
         const mfgNameInput = document.getElementById('manufacturerName');
+        const mfgNameRow = document.getElementById('manufacturerNameRow');
         const yarnInput = document.getElementById('yarnProducer');
+        const yarnNameRow = document.getElementById('yarnProducerNameRow');
         const contactInput = document.getElementById('contactPerson');
         const phoneInput = document.getElementById('telephone');
         const emailInput = document.getElementById('email');
@@ -256,21 +259,28 @@
 
         mfgSelect.addEventListener('change', function() {
             const idx = this.value;
-            const fields = [mfgNameInput, contactInput, phoneInput, emailInput];
+            const editableFields = [contactInput, phoneInput, emailInput];
 
             if (idx === '') {
-                fields.forEach(function(f) {
+                // "Add New Manufacturer" — show name field, clear all
+                mfgNameRow.style.display = '';
+                mfgNameInput.value = '';
+                mfgNameInput.readOnly = false;
+                mfgNameInput.classList.remove('field-prefilled');
+                editableFields.forEach(function(f) {
                     f.value = '';
                     f.readOnly = false;
                     f.classList.remove('field-prefilled');
                 });
             } else {
+                // Preset selected — hide name field, auto-fill all
+                mfgNameRow.style.display = 'none';
                 const mfg = MANUFACTURERS[parseInt(idx)];
                 mfgNameInput.value = mfg.name;
                 contactInput.value = mfg.contactPerson;
                 phoneInput.value = mfg.telephone;
                 emailInput.value = mfg.email;
-                fields.forEach(function(f) {
+                editableFields.forEach(function(f) {
                     f.readOnly = true;
                     f.classList.add('field-prefilled');
                 });
@@ -295,13 +305,15 @@
         yarnSelect.addEventListener('change', function() {
             const idx = this.value;
             if (idx === '') {
+                // "Add New Yarn Producer" — show name field
+                yarnNameRow.style.display = '';
                 yarnInput.value = '';
                 yarnInput.readOnly = false;
                 yarnInput.classList.remove('field-prefilled');
             } else {
+                // Preset selected — hide name field, auto-fill
+                yarnNameRow.style.display = 'none';
                 yarnInput.value = YARN_PRODUCERS[parseInt(idx)];
-                yarnInput.readOnly = true;
-                yarnInput.classList.add('field-prefilled');
             }
         });
 
@@ -380,13 +392,16 @@
 
         // Step 1 → Step 2
         document.getElementById('btnNextToFabric').addEventListener('click', function() {
-            const name = buyerNameInput.value.trim();
-            const address = buyerAddressInput.value.trim();
-            if (!name || !address) {
-                alert('Please fill in buyer name and address before proceeding.');
-                if (!name) buyerNameInput.focus();
-                else buyerAddressInput.focus();
-                return;
+            // If "Add New Buyer" is selected, validate manual fields
+            if (buyerSelect.value === '') {
+                var name = buyerNameInput.value.trim();
+                var address = buyerAddressInput.value.trim();
+                if (!name || !address) {
+                    alert('Please fill in buyer name and address, or select a buyer from the dropdown.');
+                    if (!name) buyerNameInput.focus();
+                    else buyerAddressInput.focus();
+                    return;
+                }
             }
             switchSection(document.getElementById('sectionBuyer'), [sectionFabric], document.getElementById('fabricDescription'));
         });
@@ -426,6 +441,24 @@
         // ===== Form Submission =====
         document.getElementById('certForm').addEventListener('submit', function(e) {
             e.preventDefault();
+
+            // Validate manufacturer
+            if (!mfgNameInput.value.trim()) {
+                alert('Please select or enter a manufacturer name.');
+                mfgSelect.focus();
+                return;
+            }
+            // Validate yarn producer
+            if (!yarnInput.value.trim()) {
+                alert('Please select or enter a yarn producer name.');
+                yarnSelect.focus();
+                return;
+            }
+            // Validate contact details
+            if (!contactInput.value.trim() || !phoneInput.value.trim() || !emailInput.value.trim()) {
+                alert('Please fill in all contact details (contact person, telephone, and email).');
+                return;
+            }
 
             // Collect invoice rows
             const invNumbers = document.querySelectorAll('.inv-number');
