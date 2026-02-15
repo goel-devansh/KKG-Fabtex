@@ -6,7 +6,7 @@
     <title>Create Certificate - KKG FABTEX</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -73,8 +73,8 @@
                                     <input type="text" class="inv-number" required placeholder="e.g., 521">
                                 </div>
                                 <div class="form-group">
-                                    <label>Invoice Date *</label>
-                                    <input type="date" class="inv-date" required>
+                                    <label>Invoice Date (DD/MM/YYYY) *</label>
+                                    <input type="text" class="inv-date" required placeholder="e.g., 15/02/2026" maxlength="10">
                                 </div>
                             </div>
                             <div class="form-row">
@@ -141,8 +141,8 @@
                     <h3><span class="step-badge">4</span> Certificate Date</h3>
                     <div class="form-row">
                         <div class="form-group">
-                            <label for="certDate">Certificate Date *</label>
-                            <input type="date" id="certDate" required>
+                            <label for="certDate">Certificate Date (DD/MM/YYYY) *</label>
+                            <input type="text" id="certDate" required placeholder="e.g., 15/02/2026" maxlength="10">
                         </div>
                     </div>
                 </div>
@@ -166,18 +166,10 @@
         const currentCertNumber = parseInt(localStorage.getItem('currentCertNumber') || '60');
         document.getElementById('nextRefDisplay').textContent = currentCertNumber + 1;
 
-        // Set today's date as default
-        const today = new Date().toISOString().split('T')[0];
-        document.getElementById('certDate').value = today;
-
-        // Format date from YYYY-MM-DD to DD/MM/YYYY
-        function formatCertDate(dateString) {
-            const date = new Date(dateString);
-            const day = String(date.getDate()).padStart(2, '0');
-            const month = String(date.getMonth() + 1).padStart(2, '0');
-            const year = date.getFullYear();
-            return day + '/' + month + '/' + year;
-        }
+        // Set today's date as default in DD/MM/YYYY format
+        const todayDate = new Date();
+        const todayStr = String(todayDate.getDate()).padStart(2, '0') + '/' + String(todayDate.getMonth() + 1).padStart(2, '0') + '/' + todayDate.getFullYear();
+        document.getElementById('certDate').value = todayStr;
 
         // ===== Buyer Presets =====
         const BUYERS = [
@@ -292,8 +284,8 @@
                         <input type="text" class="inv-number" required placeholder="e.g., 541">
                     </div>
                     <div class="form-group">
-                        <label>Invoice Date *</label>
-                        <input type="date" class="inv-date" required>
+                        <label>Invoice Date (DD/MM/YYYY) *</label>
+                        <input type="text" class="inv-date" required placeholder="e.g., 15/02/2026" maxlength="10">
                     </div>
                 </div>
                 <div class="form-row">
@@ -325,10 +317,24 @@
         const sectionDate = document.getElementById('sectionDate');
         const sectionActions = document.getElementById('sectionActions');
 
-        function revealSection(section) {
-            section.classList.remove('section-hidden');
-            section.classList.add('section-reveal');
-            section.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        function switchSection(currentSection, nextSections, focusEl) {
+            var switched = false;
+            function doSwitch() {
+                if (switched) return;
+                switched = true;
+                currentSection.classList.add('section-hidden');
+                currentSection.classList.remove('section-fade-out');
+                nextSections.forEach(function(sec) {
+                    sec.classList.remove('section-hidden');
+                    sec.classList.add('section-reveal');
+                });
+                if (focusEl) focusEl.focus();
+                nextSections[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+            currentSection.classList.add('section-fade-out');
+            currentSection.addEventListener('animationend', doSwitch, { once: true });
+            // Fallback in case animationend doesn't fire
+            setTimeout(doSwitch, 400);
         }
 
         // Step 1 → Step 2
@@ -341,32 +347,39 @@
                 else buyerAddressInput.focus();
                 return;
             }
-            revealSection(sectionFabric);
-            document.getElementById('fabricDescription').focus();
+            switchSection(document.getElementById('sectionBuyer'), [sectionFabric], document.getElementById('fabricDescription'));
         });
 
         // Step 2 → Step 3
         document.getElementById('btnNextToManufacturer').addEventListener('click', function() {
-            const fabric = document.getElementById('fabricDescription').value.trim();
+            var fabric = document.getElementById('fabricDescription').value.trim();
             if (!fabric) {
                 alert('Please fill in fabric description before proceeding.');
                 document.getElementById('fabricDescription').focus();
                 return;
             }
             // Validate all invoice rows
-            const invNumbers = document.querySelectorAll('.inv-number');
-            const invDates = document.querySelectorAll('.inv-date');
-            const invMeters = document.querySelectorAll('.inv-meters');
+            var invNumbers = document.querySelectorAll('.inv-number');
+            var invDates = document.querySelectorAll('.inv-date');
+            var invMeters = document.querySelectorAll('.inv-meters');
             for (var i = 0; i < invNumbers.length; i++) {
-                if (!invNumbers[i].value.trim() || !invDates[i].value || !invMeters[i].value.trim()) {
-                    alert('Please fill in all invoice details before proceeding.');
+                if (!invNumbers[i].value.trim()) {
+                    alert('Please fill in Invoice ' + (i + 1) + ' number.');
                     invNumbers[i].focus();
                     return;
                 }
+                if (!invDates[i].value) {
+                    alert('Please fill in Invoice ' + (i + 1) + ' date.');
+                    invDates[i].focus();
+                    return;
+                }
+                if (!invMeters[i].value.trim()) {
+                    alert('Please fill in Invoice ' + (i + 1) + ' meters.');
+                    invMeters[i].focus();
+                    return;
+                }
             }
-            revealSection(sectionManufacturer);
-            revealSection(sectionDate);
-            revealSection(sectionActions);
+            switchSection(sectionFabric, [sectionManufacturer, sectionDate, sectionActions], null);
         });
 
         // ===== Form Submission =====
@@ -381,13 +394,13 @@
             for (var i = 0; i < invNumbers.length; i++) {
                 invoices.push({
                     invoiceNo: invNumbers[i].value.trim(),
-                    invoiceDate: formatCertDate(invDates[i].value),
+                    invoiceDate: invDates[i].value.trim(),
                     meters: invMeters[i].value.trim()
                 });
             }
 
             const refNumber = currentCertNumber + 1;
-            const dateStr = formatCertDate(document.getElementById('certDate').value);
+            const dateStr = document.getElementById('certDate').value.trim();
             const certificateNo = 'KKG/' + refNumber + '/' + dateStr;
 
             const cert = {

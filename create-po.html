@@ -6,7 +6,7 @@
     <title>Create PO - KKG FABTEX</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -281,9 +281,10 @@
         const sectionActions = document.getElementById('sectionActions');
 
         function switchSection(currentSection, nextSections, focusEl) {
-            currentSection.classList.add('section-fade-out');
-            currentSection.addEventListener('animationend', function handler() {
-                currentSection.removeEventListener('animationend', handler);
+            var switched = false;
+            function doSwitch() {
+                if (switched) return;
+                switched = true;
                 currentSection.classList.add('section-hidden');
                 currentSection.classList.remove('section-fade-out');
                 nextSections.forEach(function(sec) {
@@ -292,7 +293,11 @@
                 });
                 if (focusEl) focusEl.focus();
                 nextSections[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
-            }, { once: true });
+            }
+            currentSection.classList.add('section-fade-out');
+            currentSection.addEventListener('animationend', doSwitch, { once: true });
+            // Fallback in case animationend doesn't fire
+            setTimeout(doSwitch, 400);
         }
 
         // Step 1 → Step 2: Validate supplier info
