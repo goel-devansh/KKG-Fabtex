@@ -138,11 +138,29 @@
         if (!localStorage.getItem('isLoggedIn')) {
             window.location.href = 'login.html';
         }
-        
+
+        // Check if we're in edit mode
+        const urlParams = new URLSearchParams(window.location.search);
+        const editPONumber = urlParams.get('edit') ? parseInt(urlParams.get('edit')) : null;
+        let editingPO = null;
+
+        if (editPONumber) {
+            const pos = JSON.parse(localStorage.getItem('purchaseOrders') || '[]');
+            editingPO = pos.find(p => p.poNumber === editPONumber);
+        }
+
         // Display next PO number
         const currentPONumber = parseInt(localStorage.getItem('currentPONumber') || '259');
-        document.getElementById('nextPODisplay').textContent = currentPONumber + 1;
-        
+
+        if (editingPO) {
+            document.querySelector('.nav-title').textContent = 'Edit Purchase Order';
+            document.querySelector('.form-box h2').textContent = 'Edit Purchase Order #' + editingPO.poNumber;
+            document.querySelector('.next-po-info').style.display = 'none';
+            document.querySelector('.form-actions .btn-primary').textContent = 'Update PO';
+        } else {
+            document.getElementById('nextPODisplay').textContent = currentPONumber + 1;
+        }
+
         // Set today's date as default
         const today = new Date().toISOString().split('T')[0];
         document.getElementById('poDate').value = today;
@@ -201,6 +219,64 @@
                 supplierAddressInput.placeholder = '';
             }
         });
+
+        // Pre-fill form if editing
+        if (editingPO) {
+            // Try to match supplier to a preset
+            const supplierIdx = SUPPLIERS.findIndex(s => s.name === editingPO.supplierName);
+            if (supplierIdx >= 0) {
+                supplierSelect.value = supplierIdx;
+                supplierSelect.dispatchEvent(new Event('change'));
+            } else {
+                supplierSelect.value = '';
+                supplierNameInput.value = editingPO.supplierName;
+                supplierAddressInput.value = editingPO.supplierAddress;
+                supplierNameInput.readOnly = false;
+                supplierAddressInput.readOnly = false;
+            }
+
+            // Item details
+            document.getElementById('itemDescription').value = editingPO.itemDescription;
+            document.getElementById('quantity').value = editingPO.quantity.replace(' MTS', '');
+            document.getElementById('rate').value = editingPO.rate;
+
+            // Remarks
+            const remarksVal = editingPO.remarks || '';
+            if (remarksVal === '98L' || remarksVal === '100L') {
+                document.getElementById('remarksSelect').value = remarksVal;
+            } else if (remarksVal) {
+                document.getElementById('remarksSelect').value = 'custom';
+                document.getElementById('remarksManual').style.display = 'block';
+                document.getElementById('remarksManual').value = remarksVal;
+            }
+
+            // PO Date (convert DD/MM/YYYY to YYYY-MM-DD)
+            const dateParts = editingPO.date.split('/');
+            if (dateParts.length === 3) {
+                document.getElementById('poDate').value = dateParts[2] + '-' + dateParts[1] + '-' + dateParts[0];
+            }
+
+            // Delivery date
+            document.getElementById('deliveryDate').value = editingPO.deliveryDate;
+
+            // Payment terms
+            const ptVal = editingPO.paymentTerms;
+            if (ptVal === '60 DAYS' || ptVal === '90 DAYS' || ptVal === '120 DAYS') {
+                document.getElementById('paymentTermsSelect').value = ptVal;
+            } else {
+                document.getElementById('paymentTermsSelect').value = 'custom';
+                document.getElementById('paymentTermsManual').style.display = 'block';
+                document.getElementById('paymentTermsManual').value = ptVal;
+            }
+
+            // Show all sections at once for editing
+            document.getElementById('sectionSupplier').classList.remove('section-hidden');
+            document.getElementById('sectionItems').classList.remove('section-hidden');
+            document.getElementById('sectionTerms').classList.remove('section-hidden');
+            document.getElementById('sectionActions').classList.remove('section-hidden');
+            // Hide the "Next" buttons in edit mode
+            document.querySelectorAll('.section-next').forEach(el => el.style.display = 'none');
+        }
 
         // Organic PO toggle
         let isOrganic = false;
@@ -365,35 +441,51 @@
             // Get payment terms value
             const paymentTermsValue = paymentTermsSelect.value === 'custom' ? paymentTermsManual.value : paymentTermsSelect.value;
 
-            // Get form values
-            const po = {
-                poNumber: currentPONumber + 1,
-                date: formatPODate(document.getElementById('poDate').value),
-                supplierName: document.getElementById('supplierName').value,
-                supplierAddress: document.getElementById('supplierAddress').value,
-                itemDescription: document.getElementById('itemDescription').value,
-                quantity: quantityValue,
-                rate: document.getElementById('rate').value,
-                remarks: remarksValue,
-                deliveryDate: document.getElementById('deliveryDate').value,
-                paymentTerms: paymentTermsValue,
-                createdBy: localStorage.getItem('currentUser'),
-                createdAt: new Date().toISOString()
-            };
-            
             // Get existing POs
             const pos = JSON.parse(localStorage.getItem('purchaseOrders') || '[]');
-            
-            // Add new PO
-            pos.push(po);
-            
-            // Save to localStorage
-            localStorage.setItem('purchaseOrders', JSON.stringify(pos));
-            localStorage.setItem('currentPONumber', po.poNumber.toString());
-            
-            // Show success and redirect
-            alert(`Purchase Order #${po.poNumber} created successfully!`);
-            window.location.href = 'dashboard.html';
+
+            if (editingPO) {
+                // Update existing PO
+                const idx = pos.findIndex(p => p.poNumber === editingPO.poNumber);
+                if (idx !== -1) {
+                    pos[idx].date = formatPODate(document.getElementById('poDate').value);
+                    pos[idx].supplierName = document.getElementById('supplierName').value;
+                    pos[idx].supplierAddress = document.getElementById('supplierAddress').value;
+                    pos[idx].itemDescription = document.getElementById('itemDescription').value;
+                    pos[idx].quantity = quantityValue;
+                    pos[idx].rate = document.getElementById('rate').value;
+                    pos[idx].remarks = remarksValue;
+                    pos[idx].deliveryDate = document.getElementById('deliveryDate').value;
+                    pos[idx].paymentTerms = paymentTermsValue;
+
+                    localStorage.setItem('purchaseOrders', JSON.stringify(pos));
+                    alert(`Purchase Order #${editingPO.poNumber} updated successfully!`);
+                    window.location.href = 'dashboard.html';
+                }
+            } else {
+                // Create new PO
+                const po = {
+                    poNumber: currentPONumber + 1,
+                    date: formatPODate(document.getElementById('poDate').value),
+                    supplierName: document.getElementById('supplierName').value,
+                    supplierAddress: document.getElementById('supplierAddress').value,
+                    itemDescription: document.getElementById('itemDescription').value,
+                    quantity: quantityValue,
+                    rate: document.getElementById('rate').value,
+                    remarks: remarksValue,
+                    deliveryDate: document.getElementById('deliveryDate').value,
+                    paymentTerms: paymentTermsValue,
+                    createdBy: localStorage.getItem('currentUser'),
+                    createdAt: new Date().toISOString()
+                };
+
+                pos.push(po);
+                localStorage.setItem('purchaseOrders', JSON.stringify(pos));
+                localStorage.setItem('currentPONumber', po.poNumber.toString());
+
+                alert(`Purchase Order #${po.poNumber} created successfully!`);
+                window.location.href = 'dashboard.html';
+            }
         });
     </script>
 </body>

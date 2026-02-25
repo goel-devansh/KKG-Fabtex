@@ -170,9 +170,27 @@
             window.location.href = 'login.html';
         }
 
+        // Check if we're in edit mode
+        const urlParams = new URLSearchParams(window.location.search);
+        const editRefNumber = urlParams.get('edit') ? parseInt(urlParams.get('edit')) : null;
+        let editingCert = null;
+
+        if (editRefNumber) {
+            const certs = JSON.parse(localStorage.getItem('certificates') || '[]');
+            editingCert = certs.find(c => c.refNumber === editRefNumber);
+        }
+
         // Display next ref number
         const currentCertNumber = parseInt(localStorage.getItem('currentCertNumber') || '60');
-        document.getElementById('nextRefDisplay').textContent = currentCertNumber + 1;
+
+        if (editingCert) {
+            document.querySelector('.nav-title').textContent = 'Edit Ecovero Certificate';
+            document.querySelector('.form-box h2').textContent = 'Edit Certificate KKG/' + editingCert.refNumber;
+            document.querySelector('.next-po-info').style.display = 'none';
+            document.querySelector('.form-actions .btn-primary').textContent = 'Update Certificate';
+        } else {
+            document.getElementById('nextRefDisplay').textContent = currentCertNumber + 1;
+        }
 
         // Set today's date as default
         const today = new Date().toISOString().split('T')[0];
@@ -317,8 +335,95 @@
             }
         });
 
+        // Pre-fill form if editing
+        if (editingCert) {
+            // Buyer
+            const buyerIdx = BUYERS.findIndex(b => b.name === editingCert.buyerName);
+            if (buyerIdx >= 0) {
+                buyerSelect.value = buyerIdx;
+                buyerSelect.dispatchEvent(new Event('change'));
+            } else {
+                buyerSelect.value = '';
+                buyerFieldsRow.style.display = '';
+                buyerNameInput.value = editingCert.buyerName;
+                buyerAddressInput.value = editingCert.buyerAddress;
+                buyerNameInput.readOnly = false;
+                buyerAddressInput.readOnly = false;
+            }
+
+            // Fabric
+            document.getElementById('fabricDescription').value = editingCert.fabricDescription;
+
+            // Invoices - fill first invoice, add more if needed
+            const firstInvRow = document.querySelector('.invoice-row');
+            if (editingCert.invoices.length > 0) {
+                const inv0 = editingCert.invoices[0];
+                firstInvRow.querySelector('.inv-number').value = inv0.invoiceNo;
+                // Convert DD/MM/YYYY to YYYY-MM-DD for date input
+                const dp0 = inv0.invoiceDate.split('/');
+                if (dp0.length === 3) firstInvRow.querySelector('.inv-date').value = dp0[2] + '-' + dp0[1] + '-' + dp0[0];
+                firstInvRow.querySelector('.inv-meters').value = inv0.meters;
+            }
+            // Add additional invoices
+            for (let i = 1; i < editingCert.invoices.length; i++) {
+                document.getElementById('addInvoiceBtn').click();
+                const rows = document.querySelectorAll('.invoice-row');
+                const row = rows[rows.length - 1];
+                const inv = editingCert.invoices[i];
+                row.querySelector('.inv-number').value = inv.invoiceNo;
+                const dp = inv.invoiceDate.split('/');
+                if (dp.length === 3) row.querySelector('.inv-date').value = dp[2] + '-' + dp[1] + '-' + dp[0];
+                row.querySelector('.inv-meters').value = inv.meters;
+            }
+
+            // Manufacturer
+            const mfgIdx = MANUFACTURERS.findIndex(m => m.name === editingCert.manufacturerName);
+            if (mfgIdx >= 0) {
+                mfgSelect.value = mfgIdx;
+                mfgSelect.dispatchEvent(new Event('change'));
+            } else {
+                mfgSelect.value = '';
+                mfgNameRow.style.display = '';
+                mfgNameInput.value = editingCert.manufacturerName;
+                mfgNameInput.readOnly = false;
+                contactInput.value = editingCert.contactPerson;
+                phoneInput.value = editingCert.telephone;
+                emailInput.value = editingCert.email;
+                contactInput.readOnly = false;
+                phoneInput.readOnly = false;
+                emailInput.readOnly = false;
+            }
+
+            // Yarn Producer
+            const yarnIdx = YARN_PRODUCERS.findIndex(yp => yp === editingCert.yarnProducer);
+            if (yarnIdx >= 0) {
+                yarnSelect.value = yarnIdx;
+                yarnSelect.dispatchEvent(new Event('change'));
+            } else {
+                yarnSelect.value = '';
+                yarnNameRow.style.display = '';
+                yarnInput.value = editingCert.yarnProducer;
+                yarnInput.readOnly = false;
+            }
+
+            // Certificate date (convert DD/MM/YYYY to YYYY-MM-DD)
+            const cdParts = editingCert.date.split('/');
+            if (cdParts.length === 3) {
+                document.getElementById('certDate').value = cdParts[2] + '-' + cdParts[1] + '-' + cdParts[0];
+            }
+
+            // Show all sections at once for editing
+            document.getElementById('sectionBuyer').classList.remove('section-hidden');
+            document.getElementById('sectionFabric').classList.remove('section-hidden');
+            document.getElementById('sectionManufacturer').classList.remove('section-hidden');
+            document.getElementById('sectionDate').classList.remove('section-hidden');
+            document.getElementById('sectionActions').classList.remove('section-hidden');
+            // Hide "Next" buttons in edit mode
+            document.querySelectorAll('.section-next').forEach(el => el.style.display = 'none');
+        }
+
         // ===== Multi-Invoice Support =====
-        let invoiceCount = 1;
+        let invoiceCount = editingCert ? document.querySelectorAll('.invoice-row').length : 1;
 
         document.getElementById('addInvoiceBtn').addEventListener('click', function() {
             invoiceCount++;
@@ -473,35 +578,58 @@
                 });
             }
 
-            const refNumber = currentCertNumber + 1;
-            const dateStr = formatCertDate(document.getElementById('certDate').value);
-            const certificateNo = 'KKG/' + refNumber + '/' + dateStr;
-
-            const cert = {
-                refNumber: refNumber,
-                date: dateStr,
-                certificateNo: certificateNo,
-                buyerName: buyerNameInput.value.trim(),
-                buyerAddress: buyerAddressInput.value.trim(),
-                fabricDescription: document.getElementById('fabricDescription').value.trim(),
-                invoices: invoices,
-                manufacturerName: mfgNameInput.value.trim(),
-                yarnProducer: yarnInput.value.trim(),
-                contactPerson: contactInput.value.trim(),
-                telephone: phoneInput.value.trim(),
-                email: emailInput.value.trim(),
-                createdBy: localStorage.getItem('currentUser'),
-                createdAt: new Date().toISOString()
-            };
-
-            // Save
             const certs = JSON.parse(localStorage.getItem('certificates') || '[]');
-            certs.push(cert);
-            localStorage.setItem('certificates', JSON.stringify(certs));
-            localStorage.setItem('currentCertNumber', refNumber.toString());
+            const dateStr = formatCertDate(document.getElementById('certDate').value);
 
-            alert('Certificate KKG/' + refNumber + ' created successfully!');
-            window.location.href = 'cert-dashboard.html';
+            if (editingCert) {
+                // Update existing certificate
+                const idx = certs.findIndex(c => c.refNumber === editingCert.refNumber);
+                if (idx !== -1) {
+                    certs[idx].date = dateStr;
+                    certs[idx].certificateNo = 'KKG/' + editingCert.refNumber + '/' + dateStr;
+                    certs[idx].buyerName = buyerNameInput.value.trim();
+                    certs[idx].buyerAddress = buyerAddressInput.value.trim();
+                    certs[idx].fabricDescription = document.getElementById('fabricDescription').value.trim();
+                    certs[idx].invoices = invoices;
+                    certs[idx].manufacturerName = mfgNameInput.value.trim();
+                    certs[idx].yarnProducer = yarnInput.value.trim();
+                    certs[idx].contactPerson = contactInput.value.trim();
+                    certs[idx].telephone = phoneInput.value.trim();
+                    certs[idx].email = emailInput.value.trim();
+
+                    localStorage.setItem('certificates', JSON.stringify(certs));
+                    alert('Certificate KKG/' + editingCert.refNumber + ' updated successfully!');
+                    window.location.href = 'cert-dashboard.html';
+                }
+            } else {
+                // Create new certificate
+                const refNumber = currentCertNumber + 1;
+                const certificateNo = 'KKG/' + refNumber + '/' + dateStr;
+
+                const cert = {
+                    refNumber: refNumber,
+                    date: dateStr,
+                    certificateNo: certificateNo,
+                    buyerName: buyerNameInput.value.trim(),
+                    buyerAddress: buyerAddressInput.value.trim(),
+                    fabricDescription: document.getElementById('fabricDescription').value.trim(),
+                    invoices: invoices,
+                    manufacturerName: mfgNameInput.value.trim(),
+                    yarnProducer: yarnInput.value.trim(),
+                    contactPerson: contactInput.value.trim(),
+                    telephone: phoneInput.value.trim(),
+                    email: emailInput.value.trim(),
+                    createdBy: localStorage.getItem('currentUser'),
+                    createdAt: new Date().toISOString()
+                };
+
+                certs.push(cert);
+                localStorage.setItem('certificates', JSON.stringify(certs));
+                localStorage.setItem('currentCertNumber', refNumber.toString());
+
+                alert('Certificate KKG/' + refNumber + ' created successfully!');
+                window.location.href = 'cert-dashboard.html';
+            }
         });
     </script>
 </body>
