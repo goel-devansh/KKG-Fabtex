@@ -10,6 +10,8 @@
     <link rel="stylesheet" href="styles.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 </head>
 <body>
     <nav class="navbar dashboard-nav">
@@ -37,11 +39,11 @@
 
         <div class="stats-container">
             <div class="stat-card">
-                <div class="stat-number" id="totalPOs">0</div>
+                <div class="stat-number" id="totalPOs">-</div>
                 <div class="stat-label">Total POs</div>
             </div>
             <div class="stat-card">
-                <div class="stat-number" id="nextPONumber">260</div>
+                <div class="stat-number" id="nextPONumber">-</div>
                 <div class="stat-label">Next PO Number</div>
             </div>
         </div>
@@ -61,6 +63,8 @@
         </div>
     </div>
 
+    <script src="firebase-config.js"></script>
+    <script src="db.js"></script>
     <script src="app.js"></script>
     <script src="pdf-generator.js"></script>
     <script>
@@ -68,178 +72,175 @@
         if (!localStorage.getItem('isLoggedIn')) {
             window.location.href = 'login.html';
         }
-        
+
         // Display username
         document.getElementById('userName').textContent = localStorage.getItem('currentUser');
-        
-        // Load and display POs
-        loadPOs();
-        
-        function loadPOs() {
-            const pos = JSON.parse(localStorage.getItem('purchaseOrders') || '[]');
-            const poList = document.getElementById('poList');
-            const emptyState = document.getElementById('emptyState');
-            const totalPOsEl = document.getElementById('totalPOs');
-            const nextPOEl = document.getElementById('nextPONumber');
-            
+
+        // In-memory cache for POs (used by viewPO and downloadPO)
+        var cachedPOs = [];
+
+        // Initialize
+        async function init() {
+            await DB.migrateFromLocalStorage();
+            await loadPOs();
+        }
+
+        async function loadPOs() {
+            var pos = await DB.getPOs();
+            var currentPONumber = await DB.getCounter('currentPONumber');
+
+            cachedPOs = pos;
+
+            var poList = document.getElementById('poList');
+            var emptyState = document.getElementById('emptyState');
+            var totalPOsEl = document.getElementById('totalPOs');
+            var nextPOEl = document.getElementById('nextPONumber');
+
             totalPOsEl.textContent = pos.length;
-            
-            // Get next PO number
-            const currentPONumber = parseInt(localStorage.getItem('currentPONumber') || '259');
             nextPOEl.textContent = currentPONumber + 1;
-            
+
             if (pos.length === 0) {
                 emptyState.style.display = 'block';
                 poList.style.display = 'none';
                 return;
             }
-            
+
             emptyState.style.display = 'none';
             poList.style.display = 'block';
-            
+
             // Sort by PO number (newest first)
-            pos.sort((a, b) => b.poNumber - a.poNumber);
-            
-            poList.innerHTML = pos.map(po => `
-                <div class="po-card">
-                    <div class="po-header">
-                        <div>
-                            <h3>PO #${po.poNumber}</h3>
-                            <p class="po-date">Created: ${po.date} by ${po.createdBy}</p>
-                        </div>
-                        <div class="po-actions">
-                            <button onclick="viewPO(${po.poNumber})" class="btn-view">View</button>
-                            <a href="create-po.html?edit=${po.poNumber}" class="btn-view" style="background: #d97706; text-decoration: none; text-align: center;">Edit</a>
-                            <button onclick="downloadPO(${po.poNumber})" class="btn-download">Download PDF</button>
-                        </div>
-                    </div>
-                    <div class="po-details">
-                        <p><strong>Supplier:</strong> ${po.supplierName}</p>
-                        <p><strong>Item:</strong> ${po.itemDescription.substring(0, 100)}${po.itemDescription.length > 100 ? '...' : ''}</p>
-                        <p><strong>Quantity:</strong> ${po.quantity} | <strong>Rate:</strong> Rs ${po.rate}</p>
-                    </div>
-                </div>
-            `).join('');
+            pos.sort(function(a, b) { return b.poNumber - a.poNumber; });
+
+            poList.innerHTML = pos.map(function(po) {
+                return '<div class="po-card">' +
+                    '<div class="po-header">' +
+                        '<div>' +
+                            '<h3>PO #' + po.poNumber + '</h3>' +
+                            '<p class="po-date">Created: ' + po.date + ' by ' + po.createdBy + '</p>' +
+                        '</div>' +
+                        '<div class="po-actions">' +
+                            '<button onclick="viewPO(' + po.poNumber + ')" class="btn-view">View</button>' +
+                            '<a href="create-po.html?edit=' + po.poNumber + '" class="btn-view" style="background: #d97706; text-decoration: none; text-align: center;">Edit</a>' +
+                            '<button onclick="downloadPO(' + po.poNumber + ')" class="btn-download">Download PDF</button>' +
+                        '</div>' +
+                    '</div>' +
+                    '<div class="po-details">' +
+                        '<p><strong>Supplier:</strong> ' + po.supplierName + '</p>' +
+                        '<p><strong>Item:</strong> ' + po.itemDescription.substring(0, 100) + (po.itemDescription.length > 100 ? '...' : '') + '</p>' +
+                        '<p><strong>Quantity:</strong> ' + po.quantity + ' | <strong>Rate:</strong> Rs ' + po.rate + '</p>' +
+                    '</div>' +
+                '</div>';
+            }).join('');
         }
-        
+
         function viewPO(poNumber) {
-            const pos = JSON.parse(localStorage.getItem('purchaseOrders') || '[]');
-            const po = pos.find(p => p.poNumber === poNumber);
-            
+            var po = cachedPOs.find(function(p) { return p.poNumber === poNumber; });
+
             if (po) {
-                const details = `
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-PURCHASE ORDER #${po.poNumber}
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-Date: ${po.date}
-Created by: ${po.createdBy}
-
-SUPPLIER INFORMATION
-────────────────────
-${po.supplierName}
-${po.supplierAddress}
-
-ITEM DETAILS
-────────────────────
-${po.itemDescription}
-
-Quantity: ${po.quantity}
-Rate: Rs ${po.rate}
-Remarks: ${po.remarks || 'N/A'}
-
-TERMS
-────────────────────
-Delivery: ${po.deliveryDate}
-Payment Terms: ${po.paymentTerms}
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-                `;
+                var details = '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n' +
+                    'PURCHASE ORDER #' + po.poNumber + '\n' +
+                    '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n' +
+                    'Date: ' + po.date + '\n' +
+                    'Created by: ' + po.createdBy + '\n\n' +
+                    'SUPPLIER INFORMATION\n' +
+                    '────────────────────\n' +
+                    po.supplierName + '\n' +
+                    po.supplierAddress + '\n\n' +
+                    'ITEM DETAILS\n' +
+                    '────────────────────\n' +
+                    po.itemDescription + '\n\n' +
+                    'Quantity: ' + po.quantity + '\n' +
+                    'Rate: Rs ' + po.rate + '\n' +
+                    'Remarks: ' + (po.remarks || 'N/A') + '\n\n' +
+                    'TERMS\n' +
+                    '────────────────────\n' +
+                    'Delivery: ' + po.deliveryDate + '\n' +
+                    'Payment Terms: ' + po.paymentTerms + '\n\n' +
+                    '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━';
                 alert(details);
             }
         }
-        
+
         function logout() {
             localStorage.removeItem('isLoggedIn');
             localStorage.removeItem('currentUser');
             window.location.href = 'login.html';
         }
-        
-        function removePO() {
-            const pos = JSON.parse(localStorage.getItem('purchaseOrders') || '[]');
+
+        async function removePO() {
+            var pos = cachedPOs;
 
             if (pos.length === 0) {
                 alert('No purchase orders to remove!');
                 return;
             }
 
-            const poNumberStr = prompt('Enter the PO number you want to delete:');
+            var poNumberStr = prompt('Enter the PO number you want to delete:');
 
             if (!poNumberStr) {
-                return; // User cancelled
+                return;
             }
 
-            const poNumber = parseInt(poNumberStr);
+            var poNumber = parseInt(poNumberStr);
 
             if (isNaN(poNumber)) {
                 alert('❌ Invalid PO number entered!');
                 return;
             }
 
-            const poToDelete = pos.find(p => p.poNumber === poNumber);
+            var poToDelete = pos.find(function(p) { return p.poNumber === poNumber; });
 
             if (!poToDelete) {
-                alert(`❌ PO #${poNumber} not found.`);
+                alert('❌ PO #' + poNumber + ' not found.');
                 return;
             }
 
-            const confirmMessage = `⚠️ CONFIRM DELETION:\n\n` +
-                `PO #${poToDelete.poNumber}\n` +
-                `Supplier: ${poToDelete.supplierName}\n` +
-                `Date: ${poToDelete.date}\n\n` +
-                `This action CANNOT be undone!\n\n` +
-                `Type "DELETE" to confirm:`;
+            var confirmMessage = '⚠️ CONFIRM DELETION:\n\n' +
+                'PO #' + poToDelete.poNumber + '\n' +
+                'Supplier: ' + poToDelete.supplierName + '\n' +
+                'Date: ' + poToDelete.date + '\n\n' +
+                'This action CANNOT be undone!\n\n' +
+                'Type "DELETE" to confirm:';
 
-            const confirmation = prompt(confirmMessage);
+            var confirmation = prompt(confirmMessage);
 
             if (confirmation === 'DELETE') {
-                const updatedPOs = pos.filter(p => p.poNumber !== poNumber);
-                localStorage.setItem('purchaseOrders', JSON.stringify(updatedPOs));
+                await DB.deletePO(poNumber);
 
-                // Update PO counter based on which PO was deleted
-                const currentCounter = parseInt(localStorage.getItem('currentPONumber') || '259');
-                if (updatedPOs.length === 0) {
-                    // All POs deleted - reset counter so next PO reuses deleted number
-                    localStorage.setItem('currentPONumber', (poNumber - 1).toString());
+                // Update counter
+                var remainingPOs = pos.filter(function(p) { return p.poNumber !== poNumber; });
+
+                if (remainingPOs.length === 0) {
+                    await DB.setCounter('currentPONumber', poNumber - 1);
                 } else {
-                    // Find the highest remaining PO number
-                    const highestRemaining = Math.max(...updatedPOs.map(p => p.poNumber));
+                    var highestRemaining = Math.max.apply(null, remainingPOs.map(function(p) { return p.poNumber; }));
                     if (poNumber > highestRemaining) {
-                        // Deleted the last PO - next PO reuses that number
-                        localStorage.setItem('currentPONumber', (poNumber - 1).toString());
+                        await DB.setCounter('currentPONumber', poNumber - 1);
                     } else {
-                        // Deleted from middle - next PO is incremental of last existing
-                        localStorage.setItem('currentPONumber', highestRemaining.toString());
+                        await DB.setCounter('currentPONumber', highestRemaining);
                     }
                 }
 
-                alert(`✅ PO #${poNumber} has been deleted successfully!`);
+                alert('✅ PO #' + poNumber + ' has been deleted successfully!');
                 location.reload();
             } else {
                 alert('❌ Deletion cancelled. Confirmation text did not match.');
             }
         }
-        
+
         // Search functionality
         document.getElementById('searchPO').addEventListener('input', function(e) {
-            const searchTerm = e.target.value.toLowerCase();
-            const poCards = document.querySelectorAll('.po-card');
-            
-            poCards.forEach(card => {
-                const text = card.textContent.toLowerCase();
+            var searchTerm = e.target.value.toLowerCase();
+            var poCards = document.querySelectorAll('.po-card');
+
+            poCards.forEach(function(card) {
+                var text = card.textContent.toLowerCase();
                 card.style.display = text.includes(searchTerm) ? 'block' : 'none';
             });
         });
+
+        // Start loading data
+        init();
     </script>
 </body>
 </html>

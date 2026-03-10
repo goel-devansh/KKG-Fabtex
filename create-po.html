@@ -8,6 +8,8 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 </head>
 <body>
     <nav class="navbar dashboard-nav">
@@ -25,8 +27,8 @@
     <div class="form-container">
         <div class="form-box">
             <h2>New Purchase Order</h2>
-            <p class="next-po-info">Next PO Number: <strong id="nextPODisplay">260</strong></p>
-            
+            <p class="next-po-info">Next PO Number: <strong id="nextPODisplay">...</strong></p>
+
             <form id="poForm">
                 <div class="form-section" id="sectionSupplier">
                     <h3><span class="step-badge">1</span> Supplier Information</h3>
@@ -133,6 +135,9 @@
         </div>
     </div>
 
+    <script src="firebase-config.js"></script>
+    <script src="db.js"></script>
+    <script src="app.js"></script>
     <script>
         // Check if user is logged in
         if (!localStorage.getItem('isLoggedIn')) {
@@ -140,42 +145,26 @@
         }
 
         // Check if we're in edit mode
-        const urlParams = new URLSearchParams(window.location.search);
-        const editPONumber = urlParams.get('edit') ? parseInt(urlParams.get('edit')) : null;
-        let editingPO = null;
-
-        if (editPONumber) {
-            const pos = JSON.parse(localStorage.getItem('purchaseOrders') || '[]');
-            editingPO = pos.find(p => p.poNumber === editPONumber);
-        }
-
-        // Display next PO number
-        const currentPONumber = parseInt(localStorage.getItem('currentPONumber') || '259');
-
-        if (editingPO) {
-            document.querySelector('.nav-title').textContent = 'Edit Purchase Order';
-            document.querySelector('.form-box h2').textContent = 'Edit Purchase Order #' + editingPO.poNumber;
-            document.querySelector('.next-po-info').style.display = 'none';
-            document.querySelector('.form-actions .btn-primary').textContent = 'Update PO';
-        } else {
-            document.getElementById('nextPODisplay').textContent = currentPONumber + 1;
-        }
+        var urlParams = new URLSearchParams(window.location.search);
+        var editPONumber = urlParams.get('edit') ? parseInt(urlParams.get('edit')) : null;
+        var editingPO = null;
+        var currentPONumber = 259;
 
         // Set today's date as default
-        const today = new Date().toISOString().split('T')[0];
+        var today = new Date().toISOString().split('T')[0];
         document.getElementById('poDate').value = today;
-        
+
         // Format date from YYYY-MM-DD to DD/MM/YYYY
         function formatPODate(dateString) {
-            const date = new Date(dateString);
-            const day = String(date.getDate()).padStart(2, '0');
-            const month = String(date.getMonth() + 1).padStart(2, '0');
-            const year = date.getFullYear();
-            return `${day}/${month}/${year}`;
+            var date = new Date(dateString);
+            var day = String(date.getDate()).padStart(2, '0');
+            var month = String(date.getMonth() + 1).padStart(2, '0');
+            var year = date.getFullYear();
+            return day + '/' + month + '/' + year;
         }
-        
+
         // Hardcoded supplier list
-        const SUPPLIERS = [
+        var SUPPLIERS = [
             { name: 'JHEEVA REKHAA TEXTILES', address: 'TAMIL NADU - 625512' },
             { name: 'SKY WEAVES', address: 'TIRUPUR, TAMIL NADU - 641605' },
             { name: 'MADURAI WEAVING MILLS', address: 'TAMIL NADU' },
@@ -183,12 +172,12 @@
         ];
 
         // Populate supplier dropdown
-        const supplierSelect = document.getElementById('supplierSelect');
-        const supplierNameInput = document.getElementById('supplierName');
-        const supplierAddressInput = document.getElementById('supplierAddress');
+        var supplierSelect = document.getElementById('supplierSelect');
+        var supplierNameInput = document.getElementById('supplierName');
+        var supplierAddressInput = document.getElementById('supplierAddress');
 
         SUPPLIERS.forEach(function(supplier, index) {
-            const option = document.createElement('option');
+            var option = document.createElement('option');
             option.value = index;
             option.textContent = supplier.name;
             supplierSelect.appendChild(option);
@@ -196,7 +185,7 @@
 
         // Handle supplier selection change
         supplierSelect.addEventListener('change', function() {
-            const selectedIndex = this.value;
+            var selectedIndex = this.value;
 
             if (selectedIndex === '') {
                 supplierNameInput.value = '';
@@ -208,7 +197,7 @@
                 supplierNameInput.placeholder = 'Enter supplier name';
                 supplierAddressInput.placeholder = 'Enter supplier address';
             } else {
-                const supplier = SUPPLIERS[parseInt(selectedIndex)];
+                var supplier = SUPPLIERS[parseInt(selectedIndex)];
                 supplierNameInput.value = supplier.name;
                 supplierAddressInput.value = supplier.address;
                 supplierNameInput.readOnly = true;
@@ -220,84 +209,24 @@
             }
         });
 
-        // Pre-fill form if editing
-        if (editingPO) {
-            // Try to match supplier to a preset
-            const supplierIdx = SUPPLIERS.findIndex(s => s.name === editingPO.supplierName);
-            if (supplierIdx >= 0) {
-                supplierSelect.value = supplierIdx;
-                supplierSelect.dispatchEvent(new Event('change'));
-            } else {
-                supplierSelect.value = '';
-                supplierNameInput.value = editingPO.supplierName;
-                supplierAddressInput.value = editingPO.supplierAddress;
-                supplierNameInput.readOnly = false;
-                supplierAddressInput.readOnly = false;
-            }
-
-            // Item details
-            document.getElementById('itemDescription').value = editingPO.itemDescription;
-            document.getElementById('quantity').value = editingPO.quantity.replace(' MTS', '');
-            document.getElementById('rate').value = editingPO.rate;
-
-            // Remarks
-            const remarksVal = editingPO.remarks || '';
-            if (remarksVal === '98L' || remarksVal === '100L') {
-                document.getElementById('remarksSelect').value = remarksVal;
-            } else if (remarksVal) {
-                document.getElementById('remarksSelect').value = 'custom';
-                document.getElementById('remarksManual').style.display = 'block';
-                document.getElementById('remarksManual').value = remarksVal;
-            }
-
-            // PO Date (convert DD/MM/YYYY to YYYY-MM-DD)
-            const dateParts = editingPO.date.split('/');
-            if (dateParts.length === 3) {
-                document.getElementById('poDate').value = dateParts[2] + '-' + dateParts[1] + '-' + dateParts[0];
-            }
-
-            // Delivery date
-            document.getElementById('deliveryDate').value = editingPO.deliveryDate;
-
-            // Payment terms
-            const ptVal = editingPO.paymentTerms;
-            if (ptVal === '60 DAYS' || ptVal === '90 DAYS' || ptVal === '120 DAYS') {
-                document.getElementById('paymentTermsSelect').value = ptVal;
-            } else {
-                document.getElementById('paymentTermsSelect').value = 'custom';
-                document.getElementById('paymentTermsManual').style.display = 'block';
-                document.getElementById('paymentTermsManual').value = ptVal;
-            }
-
-            // Show all sections at once for editing
-            document.getElementById('sectionSupplier').classList.remove('section-hidden');
-            document.getElementById('sectionItems').classList.remove('section-hidden');
-            document.getElementById('sectionTerms').classList.remove('section-hidden');
-            document.getElementById('sectionActions').classList.remove('section-hidden');
-            // Hide the "Next" buttons in edit mode
-            document.querySelectorAll('.section-next').forEach(el => el.style.display = 'none');
-        }
-
         // Organic PO toggle
-        let isOrganic = false;
-        const organicPrefix = 'GREIGE WOVEN FABRIC 100% ORGANIC COTTON ';
-        const itemDescriptionInput = document.getElementById('itemDescription');
+        var isOrganic = false;
+        var organicPrefix = 'GREIGE WOVEN FABRIC 100% ORGANIC COTTON ';
+        var itemDescriptionInput = document.getElementById('itemDescription');
 
         function toggleOrganic() {
-            const btn = document.getElementById('organicToggle');
+            var btn = document.getElementById('organicToggle');
             isOrganic = !isOrganic;
 
             if (isOrganic) {
                 btn.classList.add('btn-organic-active');
                 btn.textContent = '🌿 Organic PO ✓';
-                // Prepend organic prefix if not already there
                 if (!itemDescriptionInput.value.toUpperCase().startsWith(organicPrefix)) {
                     itemDescriptionInput.value = organicPrefix + itemDescriptionInput.value;
                 }
             } else {
                 btn.classList.remove('btn-organic-active');
                 btn.textContent = '🌿 Organic PO';
-                // Remove organic prefix if present
                 if (itemDescriptionInput.value.toUpperCase().startsWith(organicPrefix)) {
                     itemDescriptionInput.value = itemDescriptionInput.value.substring(organicPrefix.length);
                 }
@@ -305,8 +234,8 @@
         }
 
         // Remarks dropdown handler
-        const remarksSelect = document.getElementById('remarksSelect');
-        const remarksManual = document.getElementById('remarksManual');
+        var remarksSelect = document.getElementById('remarksSelect');
+        var remarksManual = document.getElementById('remarksManual');
 
         remarksSelect.addEventListener('change', function() {
             if (this.value === 'custom') {
@@ -319,8 +248,8 @@
         });
 
         // Payment Terms dropdown handler
-        const paymentTermsSelect = document.getElementById('paymentTermsSelect');
-        const paymentTermsManual = document.getElementById('paymentTermsManual');
+        var paymentTermsSelect = document.getElementById('paymentTermsSelect');
+        var paymentTermsManual = document.getElementById('paymentTermsManual');
 
         paymentTermsSelect.addEventListener('change', function() {
             if (this.value === 'custom') {
@@ -334,12 +263,12 @@
             }
         });
 
-        // Quantity validation - numbers only (allow commas for formatting)
-        const quantityInput = document.getElementById('quantity');
-        const quantityError = document.getElementById('quantityError');
+        // Quantity validation
+        var quantityInput = document.getElementById('quantity');
+        var quantityError = document.getElementById('quantityError');
 
         quantityInput.addEventListener('input', function() {
-            const raw = this.value.replace(/,/g, '');
+            var raw = this.value.replace(/,/g, '');
             if (raw !== '' && !/^\d+$/.test(raw)) {
                 quantityError.textContent = 'Please enter numbers only';
                 quantityError.style.display = 'block';
@@ -352,9 +281,9 @@
         });
 
         // Step navigation
-        const sectionItems = document.getElementById('sectionItems');
-        const sectionTerms = document.getElementById('sectionTerms');
-        const sectionActions = document.getElementById('sectionActions');
+        var sectionItems = document.getElementById('sectionItems');
+        var sectionTerms = document.getElementById('sectionTerms');
+        var sectionActions = document.getElementById('sectionActions');
 
         function switchSection(currentSection, nextSections, focusEl) {
             var switched = false;
@@ -372,14 +301,13 @@
             }
             currentSection.classList.add('section-fade-out');
             currentSection.addEventListener('animationend', doSwitch, { once: true });
-            // Fallback in case animationend doesn't fire
             setTimeout(doSwitch, 400);
         }
 
-        // Step 1 → Step 2: Validate supplier info
+        // Step 1 → Step 2
         document.getElementById('btnNextToItems').addEventListener('click', function() {
-            const name = supplierNameInput.value.trim();
-            const address = supplierAddressInput.value.trim();
+            var name = supplierNameInput.value.trim();
+            var address = supplierAddressInput.value.trim();
 
             if (!name || !address) {
                 alert('Please fill in supplier name and address before proceeding.');
@@ -391,11 +319,11 @@
             switchSection(document.getElementById('sectionSupplier'), [sectionItems], document.getElementById('itemDescription'));
         });
 
-        // Step 2 → Step 3: Validate item details
+        // Step 2 → Step 3
         document.getElementById('btnNextToTerms').addEventListener('click', function() {
-            const desc = document.getElementById('itemDescription').value.trim();
-            const qty = quantityInput.value.trim();
-            const rate = document.getElementById('rate').value.trim();
+            var desc = document.getElementById('itemDescription').value.trim();
+            var qty = quantityInput.value.trim();
+            var rate = document.getElementById('rate').value.trim();
 
             if (!desc || !qty || !rate) {
                 alert('Please fill in item description, quantity, and rate before proceeding.');
@@ -405,8 +333,7 @@
                 return;
             }
 
-            // Also validate quantity is numeric
-            const qtyClean = qty.replace(/,/g, '');
+            var qtyClean = qty.replace(/,/g, '');
             if (!/^\d+$/.test(qtyClean)) {
                 quantityError.textContent = 'Please enter numbers only';
                 quantityError.style.display = 'block';
@@ -419,11 +346,11 @@
         });
 
         // Handle form submission
-        document.getElementById('poForm').addEventListener('submit', function(e) {
+        document.getElementById('poForm').addEventListener('submit', async function(e) {
             e.preventDefault();
 
             // Validate quantity is numeric
-            const qtyRaw = quantityInput.value.replace(/,/g, '');
+            var qtyRaw = quantityInput.value.replace(/,/g, '');
             if (!/^\d+$/.test(qtyRaw)) {
                 quantityError.textContent = 'Please enter numbers only';
                 quantityError.style.display = 'block';
@@ -432,40 +359,31 @@
                 return;
             }
 
-            // Build quantity string with MTS
-            const quantityValue = quantityInput.value.trim() + ' MTS';
-
-            // Get remarks value
-            const remarksValue = remarksSelect.value === 'custom' ? remarksManual.value : remarksSelect.value;
-
-            // Get payment terms value
-            const paymentTermsValue = paymentTermsSelect.value === 'custom' ? paymentTermsManual.value : paymentTermsSelect.value;
-
-            // Get existing POs
-            const pos = JSON.parse(localStorage.getItem('purchaseOrders') || '[]');
+            var quantityValue = quantityInput.value.trim() + ' MTS';
+            var remarksValue = remarksSelect.value === 'custom' ? remarksManual.value : remarksSelect.value;
+            var paymentTermsValue = paymentTermsSelect.value === 'custom' ? paymentTermsManual.value : paymentTermsSelect.value;
 
             if (editingPO) {
                 // Update existing PO
-                const idx = pos.findIndex(p => p.poNumber === editingPO.poNumber);
-                if (idx !== -1) {
-                    pos[idx].date = formatPODate(document.getElementById('poDate').value);
-                    pos[idx].supplierName = document.getElementById('supplierName').value;
-                    pos[idx].supplierAddress = document.getElementById('supplierAddress').value;
-                    pos[idx].itemDescription = document.getElementById('itemDescription').value;
-                    pos[idx].quantity = quantityValue;
-                    pos[idx].rate = document.getElementById('rate').value;
-                    pos[idx].remarks = remarksValue;
-                    pos[idx].deliveryDate = document.getElementById('deliveryDate').value;
-                    pos[idx].paymentTerms = paymentTermsValue;
+                editingPO.date = formatPODate(document.getElementById('poDate').value);
+                editingPO.supplierName = document.getElementById('supplierName').value;
+                editingPO.supplierAddress = document.getElementById('supplierAddress').value;
+                editingPO.itemDescription = document.getElementById('itemDescription').value;
+                editingPO.quantity = quantityValue;
+                editingPO.rate = document.getElementById('rate').value;
+                editingPO.remarks = remarksValue;
+                editingPO.deliveryDate = document.getElementById('deliveryDate').value;
+                editingPO.paymentTerms = paymentTermsValue;
 
-                    localStorage.setItem('purchaseOrders', JSON.stringify(pos));
-                    alert(`Purchase Order #${editingPO.poNumber} updated successfully!`);
-                    window.location.href = 'dashboard.html';
-                }
+                await DB.savePO(editingPO);
+                alert('Purchase Order #' + editingPO.poNumber + ' updated successfully!');
+                window.location.href = 'dashboard.html';
             } else {
                 // Create new PO
-                const po = {
-                    poNumber: currentPONumber + 1,
+                var newNumber = await DB.incrementCounter('currentPONumber');
+
+                var po = {
+                    poNumber: newNumber,
                     date: formatPODate(document.getElementById('poDate').value),
                     supplierName: document.getElementById('supplierName').value,
                     supplierAddress: document.getElementById('supplierAddress').value,
@@ -479,14 +397,87 @@
                     createdAt: new Date().toISOString()
                 };
 
-                pos.push(po);
-                localStorage.setItem('purchaseOrders', JSON.stringify(pos));
-                localStorage.setItem('currentPONumber', po.poNumber.toString());
-
-                alert(`Purchase Order #${po.poNumber} created successfully!`);
+                await DB.savePO(po);
+                alert('Purchase Order #' + po.poNumber + ' created successfully!');
                 window.location.href = 'dashboard.html';
             }
         });
+
+        // Initialize - load counter and edit data from Firestore
+        async function init() {
+            await DB.migrateFromLocalStorage();
+
+            currentPONumber = await DB.getCounter('currentPONumber');
+
+            if (editPONumber) {
+                editingPO = await DB.getPO(editPONumber);
+            }
+
+            if (editingPO) {
+                document.querySelector('.nav-title').textContent = 'Edit Purchase Order';
+                document.querySelector('.form-box h2').textContent = 'Edit Purchase Order #' + editingPO.poNumber;
+                document.querySelector('.next-po-info').style.display = 'none';
+                document.querySelector('.form-actions .btn-primary').textContent = 'Update PO';
+
+                // Pre-fill supplier
+                var supplierIdx = SUPPLIERS.findIndex(function(s) { return s.name === editingPO.supplierName; });
+                if (supplierIdx >= 0) {
+                    supplierSelect.value = supplierIdx;
+                    supplierSelect.dispatchEvent(new Event('change'));
+                } else {
+                    supplierSelect.value = '';
+                    supplierNameInput.value = editingPO.supplierName;
+                    supplierAddressInput.value = editingPO.supplierAddress;
+                    supplierNameInput.readOnly = false;
+                    supplierAddressInput.readOnly = false;
+                }
+
+                // Item details
+                document.getElementById('itemDescription').value = editingPO.itemDescription;
+                document.getElementById('quantity').value = editingPO.quantity.replace(' MTS', '');
+                document.getElementById('rate').value = editingPO.rate;
+
+                // Remarks
+                var remarksVal = editingPO.remarks || '';
+                if (remarksVal === '98L' || remarksVal === '100L') {
+                    document.getElementById('remarksSelect').value = remarksVal;
+                } else if (remarksVal) {
+                    document.getElementById('remarksSelect').value = 'custom';
+                    document.getElementById('remarksManual').style.display = 'block';
+                    document.getElementById('remarksManual').value = remarksVal;
+                }
+
+                // PO Date
+                var dateParts = editingPO.date.split('/');
+                if (dateParts.length === 3) {
+                    document.getElementById('poDate').value = dateParts[2] + '-' + dateParts[1] + '-' + dateParts[0];
+                }
+
+                // Delivery date
+                document.getElementById('deliveryDate').value = editingPO.deliveryDate;
+
+                // Payment terms
+                var ptVal = editingPO.paymentTerms;
+                if (ptVal === '60 DAYS' || ptVal === '90 DAYS' || ptVal === '120 DAYS') {
+                    document.getElementById('paymentTermsSelect').value = ptVal;
+                } else {
+                    document.getElementById('paymentTermsSelect').value = 'custom';
+                    document.getElementById('paymentTermsManual').style.display = 'block';
+                    document.getElementById('paymentTermsManual').value = ptVal;
+                }
+
+                // Show all sections at once for editing
+                document.getElementById('sectionSupplier').classList.remove('section-hidden');
+                document.getElementById('sectionItems').classList.remove('section-hidden');
+                document.getElementById('sectionTerms').classList.remove('section-hidden');
+                document.getElementById('sectionActions').classList.remove('section-hidden');
+                document.querySelectorAll('.section-next').forEach(function(el) { el.style.display = 'none'; });
+            } else {
+                document.getElementById('nextPODisplay').textContent = currentPONumber + 1;
+            }
+        }
+
+        init();
     </script>
 </body>
 </html>

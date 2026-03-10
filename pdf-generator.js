@@ -1,8 +1,8 @@
 // PDF Generator for KKG FABTEX Purchase Orders
 
 function downloadPO(poNumber) {
-    const pos = JSON.parse(localStorage.getItem('purchaseOrders') || '[]');
-    const po = pos.find(p => p.poNumber === poNumber);
+    // Use in-memory cache from dashboard (populated by Firestore)
+    var po = cachedPOs.find(function(p) { return p.poNumber === poNumber; });
 
     if (!po) {
         alert('Purchase Order not found!');

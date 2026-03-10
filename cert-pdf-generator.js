@@ -1,8 +1,8 @@
 // Certificate PDF Generator for KKG FABTEX Ecovero Certificates
 
 function downloadCert(refNumber) {
-    const certs = JSON.parse(localStorage.getItem('certificates') || '[]');
-    const cert = certs.find(c => c.refNumber === refNumber);
+    // Use in-memory cache from dashboard (populated by Firestore)
+    var cert = cachedCerts.find(function(c) { return c.refNumber === refNumber; });
 
     if (!cert) {
         alert('Certificate not found!');

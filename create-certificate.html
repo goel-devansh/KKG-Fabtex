@@ -8,6 +8,8 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 </head>
 <body>
     <nav class="navbar dashboard-nav">
@@ -25,7 +27,7 @@
     <div class="form-container">
         <div class="form-box">
             <h2>New Ecovero Certificate</h2>
-            <p class="next-po-info">Next Ref. No.: <strong>KKG/<span id="nextRefDisplay">61</span></strong></p>
+            <p class="next-po-info">Next Ref. No.: <strong>KKG/<span id="nextRefDisplay">...</span></strong></p>
 
             <form id="certForm">
                 <!-- Step 1: Buyer Information -->
@@ -163,6 +165,8 @@
         </div>
     </div>
 
+    <script src="firebase-config.js"></script>
+    <script src="db.js"></script>
     <script src="app.js"></script>
     <script>
         // Check if user is logged in
@@ -171,62 +175,45 @@
         }
 
         // Check if we're in edit mode
-        const urlParams = new URLSearchParams(window.location.search);
-        const editRefNumber = urlParams.get('edit') ? parseInt(urlParams.get('edit')) : null;
-        let editingCert = null;
-
-        if (editRefNumber) {
-            const certs = JSON.parse(localStorage.getItem('certificates') || '[]');
-            editingCert = certs.find(c => c.refNumber === editRefNumber);
-        }
-
-        // Display next ref number
-        const currentCertNumber = parseInt(localStorage.getItem('currentCertNumber') || '60');
-
-        if (editingCert) {
-            document.querySelector('.nav-title').textContent = 'Edit Ecovero Certificate';
-            document.querySelector('.form-box h2').textContent = 'Edit Certificate KKG/' + editingCert.refNumber;
-            document.querySelector('.next-po-info').style.display = 'none';
-            document.querySelector('.form-actions .btn-primary').textContent = 'Update Certificate';
-        } else {
-            document.getElementById('nextRefDisplay').textContent = currentCertNumber + 1;
-        }
+        var urlParams = new URLSearchParams(window.location.search);
+        var editRefNumber = urlParams.get('edit') ? parseInt(urlParams.get('edit')) : null;
+        var editingCert = null;
+        var currentCertNumber = 60;
 
         // Set today's date as default
-        const today = new Date().toISOString().split('T')[0];
+        var today = new Date().toISOString().split('T')[0];
         document.getElementById('certDate').value = today;
 
         // Format date from YYYY-MM-DD to DD/MM/YYYY
         function formatCertDate(dateString) {
-            const date = new Date(dateString);
-            const day = String(date.getDate()).padStart(2, '0');
-            const month = String(date.getMonth() + 1).padStart(2, '0');
-            const year = date.getFullYear();
+            var date = new Date(dateString);
+            var day = String(date.getDate()).padStart(2, '0');
+            var month = String(date.getMonth() + 1).padStart(2, '0');
+            var year = date.getFullYear();
             return day + '/' + month + '/' + year;
         }
 
         // ===== Buyer Presets =====
-        const BUYERS = [
+        var BUYERS = [
             { name: 'CERTITUDE', address: 'B-64, SECTOR-83, NOIDA' },
             { name: 'THE PERFECT FIT', address: 'C-29, SECTOR-63, NOIDA' }
         ];
 
-        const buyerSelect = document.getElementById('buyerSelect');
-        const buyerNameInput = document.getElementById('buyerName');
-        const buyerAddressInput = document.getElementById('buyerAddress');
-        const buyerFieldsRow = document.getElementById('buyerFieldsRow');
+        var buyerSelect = document.getElementById('buyerSelect');
+        var buyerNameInput = document.getElementById('buyerName');
+        var buyerAddressInput = document.getElementById('buyerAddress');
+        var buyerFieldsRow = document.getElementById('buyerFieldsRow');
 
         BUYERS.forEach(function(buyer, index) {
-            const option = document.createElement('option');
+            var option = document.createElement('option');
             option.value = index;
             option.textContent = buyer.name;
             buyerSelect.appendChild(option);
         });
 
         buyerSelect.addEventListener('change', function() {
-            const idx = this.value;
+            var idx = this.value;
             if (idx === '') {
-                // "Add New Buyer" — show name/address fields
                 buyerFieldsRow.style.display = '';
                 buyerNameInput.value = '';
                 buyerAddressInput.value = '';
@@ -235,16 +222,15 @@
                 buyerNameInput.classList.remove('field-prefilled');
                 buyerAddressInput.classList.remove('field-prefilled');
             } else {
-                // Preset selected — hide fields, auto-fill
                 buyerFieldsRow.style.display = 'none';
-                const buyer = BUYERS[parseInt(idx)];
+                var buyer = BUYERS[parseInt(idx)];
                 buyerNameInput.value = buyer.name;
                 buyerAddressInput.value = buyer.address;
             }
         });
 
         // ===== Manufacturer Presets =====
-        const MANUFACTURERS = [
+        var MANUFACTURERS = [
             {
                 name: 'V. P. TEX PRIVATE LIMITED',
                 contactPerson: 'MR. SHAN BABU',
@@ -259,28 +245,27 @@
             }
         ];
 
-        const mfgSelect = document.getElementById('manufacturerSelect');
-        const mfgNameInput = document.getElementById('manufacturerName');
-        const mfgNameRow = document.getElementById('manufacturerNameRow');
-        const yarnInput = document.getElementById('yarnProducer');
-        const yarnNameRow = document.getElementById('yarnProducerNameRow');
-        const contactInput = document.getElementById('contactPerson');
-        const phoneInput = document.getElementById('telephone');
-        const emailInput = document.getElementById('email');
+        var mfgSelect = document.getElementById('manufacturerSelect');
+        var mfgNameInput = document.getElementById('manufacturerName');
+        var mfgNameRow = document.getElementById('manufacturerNameRow');
+        var yarnInput = document.getElementById('yarnProducer');
+        var yarnNameRow = document.getElementById('yarnProducerNameRow');
+        var contactInput = document.getElementById('contactPerson');
+        var phoneInput = document.getElementById('telephone');
+        var emailInput = document.getElementById('email');
 
         MANUFACTURERS.forEach(function(mfg, index) {
-            const option = document.createElement('option');
+            var option = document.createElement('option');
             option.value = index;
             option.textContent = mfg.name;
             mfgSelect.appendChild(option);
         });
 
         mfgSelect.addEventListener('change', function() {
-            const idx = this.value;
-            const editableFields = [contactInput, phoneInput, emailInput];
+            var idx = this.value;
+            var editableFields = [contactInput, phoneInput, emailInput];
 
             if (idx === '') {
-                // "Add New Manufacturer" — show name field, clear all
                 mfgNameRow.style.display = '';
                 mfgNameInput.value = '';
                 mfgNameInput.readOnly = false;
@@ -291,9 +276,8 @@
                     f.classList.remove('field-prefilled');
                 });
             } else {
-                // Preset selected — hide name field, auto-fill all
                 mfgNameRow.style.display = 'none';
-                const mfg = MANUFACTURERS[parseInt(idx)];
+                var mfg = MANUFACTURERS[parseInt(idx)];
                 mfgNameInput.value = mfg.name;
                 contactInput.value = mfg.contactPerson;
                 phoneInput.value = mfg.telephone;
@@ -306,174 +290,82 @@
         });
 
         // ===== Yarn Producer Presets =====
-        const YARN_PRODUCERS = [
+        var YARN_PRODUCERS = [
             'MOTHI SPINNERS PRIVATE LIMITED',
             'RAJLAKSHMI COTTON MILLS PVT LTD'
         ];
 
-        const yarnSelect = document.getElementById('yarnProducerSelect');
+        var yarnSelect = document.getElementById('yarnProducerSelect');
 
         YARN_PRODUCERS.forEach(function(yp, index) {
-            const option = document.createElement('option');
+            var option = document.createElement('option');
             option.value = index;
             option.textContent = yp;
             yarnSelect.appendChild(option);
         });
 
         yarnSelect.addEventListener('change', function() {
-            const idx = this.value;
+            var idx = this.value;
             if (idx === '') {
-                // "Add New Yarn Producer" — show name field
                 yarnNameRow.style.display = '';
                 yarnInput.value = '';
                 yarnInput.readOnly = false;
                 yarnInput.classList.remove('field-prefilled');
             } else {
-                // Preset selected — hide name field, auto-fill
                 yarnNameRow.style.display = 'none';
                 yarnInput.value = YARN_PRODUCERS[parseInt(idx)];
             }
         });
 
-        // Pre-fill form if editing
-        if (editingCert) {
-            // Buyer
-            const buyerIdx = BUYERS.findIndex(b => b.name === editingCert.buyerName);
-            if (buyerIdx >= 0) {
-                buyerSelect.value = buyerIdx;
-                buyerSelect.dispatchEvent(new Event('change'));
-            } else {
-                buyerSelect.value = '';
-                buyerFieldsRow.style.display = '';
-                buyerNameInput.value = editingCert.buyerName;
-                buyerAddressInput.value = editingCert.buyerAddress;
-                buyerNameInput.readOnly = false;
-                buyerAddressInput.readOnly = false;
-            }
-
-            // Fabric
-            document.getElementById('fabricDescription').value = editingCert.fabricDescription;
-
-            // Invoices - fill first invoice, add more if needed
-            const firstInvRow = document.querySelector('.invoice-row');
-            if (editingCert.invoices.length > 0) {
-                const inv0 = editingCert.invoices[0];
-                firstInvRow.querySelector('.inv-number').value = inv0.invoiceNo;
-                // Convert DD/MM/YYYY to YYYY-MM-DD for date input
-                const dp0 = inv0.invoiceDate.split('/');
-                if (dp0.length === 3) firstInvRow.querySelector('.inv-date').value = dp0[2] + '-' + dp0[1] + '-' + dp0[0];
-                firstInvRow.querySelector('.inv-meters').value = inv0.meters;
-            }
-            // Add additional invoices
-            for (let i = 1; i < editingCert.invoices.length; i++) {
-                document.getElementById('addInvoiceBtn').click();
-                const rows = document.querySelectorAll('.invoice-row');
-                const row = rows[rows.length - 1];
-                const inv = editingCert.invoices[i];
-                row.querySelector('.inv-number').value = inv.invoiceNo;
-                const dp = inv.invoiceDate.split('/');
-                if (dp.length === 3) row.querySelector('.inv-date').value = dp[2] + '-' + dp[1] + '-' + dp[0];
-                row.querySelector('.inv-meters').value = inv.meters;
-            }
-
-            // Manufacturer
-            const mfgIdx = MANUFACTURERS.findIndex(m => m.name === editingCert.manufacturerName);
-            if (mfgIdx >= 0) {
-                mfgSelect.value = mfgIdx;
-                mfgSelect.dispatchEvent(new Event('change'));
-            } else {
-                mfgSelect.value = '';
-                mfgNameRow.style.display = '';
-                mfgNameInput.value = editingCert.manufacturerName;
-                mfgNameInput.readOnly = false;
-                contactInput.value = editingCert.contactPerson;
-                phoneInput.value = editingCert.telephone;
-                emailInput.value = editingCert.email;
-                contactInput.readOnly = false;
-                phoneInput.readOnly = false;
-                emailInput.readOnly = false;
-            }
-
-            // Yarn Producer
-            const yarnIdx = YARN_PRODUCERS.findIndex(yp => yp === editingCert.yarnProducer);
-            if (yarnIdx >= 0) {
-                yarnSelect.value = yarnIdx;
-                yarnSelect.dispatchEvent(new Event('change'));
-            } else {
-                yarnSelect.value = '';
-                yarnNameRow.style.display = '';
-                yarnInput.value = editingCert.yarnProducer;
-                yarnInput.readOnly = false;
-            }
-
-            // Certificate date (convert DD/MM/YYYY to YYYY-MM-DD)
-            const cdParts = editingCert.date.split('/');
-            if (cdParts.length === 3) {
-                document.getElementById('certDate').value = cdParts[2] + '-' + cdParts[1] + '-' + cdParts[0];
-            }
-
-            // Show all sections at once for editing
-            document.getElementById('sectionBuyer').classList.remove('section-hidden');
-            document.getElementById('sectionFabric').classList.remove('section-hidden');
-            document.getElementById('sectionManufacturer').classList.remove('section-hidden');
-            document.getElementById('sectionDate').classList.remove('section-hidden');
-            document.getElementById('sectionActions').classList.remove('section-hidden');
-            // Hide "Next" buttons in edit mode
-            document.querySelectorAll('.section-next').forEach(el => el.style.display = 'none');
-        }
-
         // ===== Multi-Invoice Support =====
-        let invoiceCount = editingCert ? document.querySelectorAll('.invoice-row').length : 1;
+        var invoiceCount = 1;
 
         document.getElementById('addInvoiceBtn').addEventListener('click', function() {
             invoiceCount++;
-            const container = document.getElementById('invoicesContainer');
-            const div = document.createElement('div');
+            var container = document.getElementById('invoicesContainer');
+            var div = document.createElement('div');
             div.className = 'invoice-row';
             div.setAttribute('data-index', invoiceCount - 1);
-            div.innerHTML = `
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
-                    <h4 style="color: #475569; font-size: 0.95rem; margin: 0;">Invoice ${invoiceCount}</h4>
-                    <button type="button" class="btn-remove-invoice" onclick="removeInvoice(this)" style="background: #ef4444; color: white; border: none; padding: 0.3rem 0.8rem; border-radius: 6px; font-size: 0.8rem; cursor: pointer; font-family: inherit;">Remove</button>
-                </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>Sales Invoice No. *</label>
-                        <input type="text" class="inv-number" required placeholder="Enter invoice number">
-                    </div>
-                    <div class="form-group">
-                        <label>Invoice Date *</label>
-                        <input type="date" class="inv-date" required>
-                    </div>
-                </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>Meters *</label>
-                        <input type="number" class="inv-meters" required placeholder="Enter meters" step="0.01" min="0">
-                    </div>
-                </div>
-            `;
+            div.innerHTML = '<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">' +
+                '<h4 style="color: #475569; font-size: 0.95rem; margin: 0;">Invoice ' + invoiceCount + '</h4>' +
+                '<button type="button" class="btn-remove-invoice" onclick="removeInvoice(this)" style="background: #ef4444; color: white; border: none; padding: 0.3rem 0.8rem; border-radius: 6px; font-size: 0.8rem; cursor: pointer; font-family: inherit;">Remove</button>' +
+                '</div>' +
+                '<div class="form-row">' +
+                '<div class="form-group">' +
+                '<label>Sales Invoice No. *</label>' +
+                '<input type="text" class="inv-number" required placeholder="Enter invoice number">' +
+                '</div>' +
+                '<div class="form-group">' +
+                '<label>Invoice Date *</label>' +
+                '<input type="date" class="inv-date" required>' +
+                '</div>' +
+                '</div>' +
+                '<div class="form-row">' +
+                '<div class="form-group">' +
+                '<label>Meters *</label>' +
+                '<input type="number" class="inv-meters" required placeholder="Enter meters" step="0.01" min="0">' +
+                '</div>' +
+                '</div>';
             container.appendChild(div);
             div.scrollIntoView({ behavior: 'smooth', block: 'center' });
         });
 
         function removeInvoice(btn) {
-            const row = btn.closest('.invoice-row');
+            var row = btn.closest('.invoice-row');
             row.remove();
-            // Re-number remaining invoices
-            const rows = document.querySelectorAll('.invoice-row');
+            var rows = document.querySelectorAll('.invoice-row');
             rows.forEach(function(r, i) {
-                const heading = r.querySelector('h4');
+                var heading = r.querySelector('h4');
                 if (heading) heading.textContent = 'Invoice ' + (i + 1);
             });
             invoiceCount = rows.length;
         }
 
         // ===== Step Navigation =====
-        const sectionFabric = document.getElementById('sectionFabric');
-        const sectionManufacturer = document.getElementById('sectionManufacturer');
-        const sectionDate = document.getElementById('sectionDate');
-        const sectionActions = document.getElementById('sectionActions');
+        var sectionFabric = document.getElementById('sectionFabric');
+        var sectionManufacturer = document.getElementById('sectionManufacturer');
+        var sectionDate = document.getElementById('sectionDate');
+        var sectionActions = document.getElementById('sectionActions');
 
         function switchSection(currentSection, nextSections, focusEl) {
             var switched = false;
@@ -491,13 +383,11 @@
             }
             currentSection.classList.add('section-fade-out');
             currentSection.addEventListener('animationend', doSwitch, { once: true });
-            // Fallback in case animationend doesn't fire
             setTimeout(doSwitch, 400);
         }
 
         // Step 1 → Step 2
         document.getElementById('btnNextToFabric').addEventListener('click', function() {
-            // If "Add New Buyer" is selected, validate manual fields
             if (buyerSelect.value === '') {
                 var name = buyerNameInput.value.trim();
                 var address = buyerAddressInput.value.trim();
@@ -519,7 +409,6 @@
                 document.getElementById('fabricDescription').focus();
                 return;
             }
-            // Validate all invoice rows
             var invNumbers = document.querySelectorAll('.inv-number');
             var invDates = document.querySelectorAll('.inv-date');
             var invMeters = document.querySelectorAll('.inv-meters');
@@ -544,31 +433,28 @@
         });
 
         // ===== Form Submission =====
-        document.getElementById('certForm').addEventListener('submit', function(e) {
+        document.getElementById('certForm').addEventListener('submit', async function(e) {
             e.preventDefault();
 
-            // Validate manufacturer
             if (!mfgNameInput.value.trim()) {
                 alert('Please select or enter a manufacturer name.');
                 mfgSelect.focus();
                 return;
             }
-            // Validate yarn producer
             if (!yarnInput.value.trim()) {
                 alert('Please select or enter a yarn producer name.');
                 yarnSelect.focus();
                 return;
             }
-            // Validate contact details
             if (!contactInput.value.trim() || !phoneInput.value.trim() || !emailInput.value.trim()) {
                 alert('Please fill in all contact details (contact person, telephone, and email).');
                 return;
             }
 
             // Collect invoice rows
-            const invNumbers = document.querySelectorAll('.inv-number');
-            const invDates = document.querySelectorAll('.inv-date');
-            const invMeters = document.querySelectorAll('.inv-meters');
+            var invNumbers = document.querySelectorAll('.inv-number');
+            var invDates = document.querySelectorAll('.inv-date');
+            var invMeters = document.querySelectorAll('.inv-meters');
             var invoices = [];
             for (var i = 0; i < invNumbers.length; i++) {
                 invoices.push({
@@ -578,35 +464,31 @@
                 });
             }
 
-            const certs = JSON.parse(localStorage.getItem('certificates') || '[]');
-            const dateStr = formatCertDate(document.getElementById('certDate').value);
+            var dateStr = formatCertDate(document.getElementById('certDate').value);
 
             if (editingCert) {
                 // Update existing certificate
-                const idx = certs.findIndex(c => c.refNumber === editingCert.refNumber);
-                if (idx !== -1) {
-                    certs[idx].date = dateStr;
-                    certs[idx].certificateNo = 'KKG/' + editingCert.refNumber + '/' + dateStr;
-                    certs[idx].buyerName = buyerNameInput.value.trim();
-                    certs[idx].buyerAddress = buyerAddressInput.value.trim();
-                    certs[idx].fabricDescription = document.getElementById('fabricDescription').value.trim();
-                    certs[idx].invoices = invoices;
-                    certs[idx].manufacturerName = mfgNameInput.value.trim();
-                    certs[idx].yarnProducer = yarnInput.value.trim();
-                    certs[idx].contactPerson = contactInput.value.trim();
-                    certs[idx].telephone = phoneInput.value.trim();
-                    certs[idx].email = emailInput.value.trim();
+                editingCert.date = dateStr;
+                editingCert.certificateNo = 'KKG/' + editingCert.refNumber + '/' + dateStr;
+                editingCert.buyerName = buyerNameInput.value.trim();
+                editingCert.buyerAddress = buyerAddressInput.value.trim();
+                editingCert.fabricDescription = document.getElementById('fabricDescription').value.trim();
+                editingCert.invoices = invoices;
+                editingCert.manufacturerName = mfgNameInput.value.trim();
+                editingCert.yarnProducer = yarnInput.value.trim();
+                editingCert.contactPerson = contactInput.value.trim();
+                editingCert.telephone = phoneInput.value.trim();
+                editingCert.email = emailInput.value.trim();
 
-                    localStorage.setItem('certificates', JSON.stringify(certs));
-                    alert('Certificate KKG/' + editingCert.refNumber + ' updated successfully!');
-                    window.location.href = 'cert-dashboard.html';
-                }
+                await DB.saveCert(editingCert);
+                alert('Certificate KKG/' + editingCert.refNumber + ' updated successfully!');
+                window.location.href = 'cert-dashboard.html';
             } else {
                 // Create new certificate
-                const refNumber = currentCertNumber + 1;
-                const certificateNo = 'KKG/' + refNumber + '/' + dateStr;
+                var refNumber = await DB.incrementCounter('currentCertNumber');
+                var certificateNo = 'KKG/' + refNumber + '/' + dateStr;
 
-                const cert = {
+                var cert = {
                     refNumber: refNumber,
                     date: dateStr,
                     certificateNo: certificateNo,
@@ -623,14 +505,114 @@
                     createdAt: new Date().toISOString()
                 };
 
-                certs.push(cert);
-                localStorage.setItem('certificates', JSON.stringify(certs));
-                localStorage.setItem('currentCertNumber', refNumber.toString());
-
+                await DB.saveCert(cert);
                 alert('Certificate KKG/' + refNumber + ' created successfully!');
                 window.location.href = 'cert-dashboard.html';
             }
         });
+
+        // Initialize - load counter and edit data from Firestore
+        async function init() {
+            await DB.migrateFromLocalStorage();
+
+            currentCertNumber = await DB.getCounter('currentCertNumber');
+
+            if (editRefNumber) {
+                editingCert = await DB.getCert(editRefNumber);
+            }
+
+            if (editingCert) {
+                document.querySelector('.nav-title').textContent = 'Edit Ecovero Certificate';
+                document.querySelector('.form-box h2').textContent = 'Edit Certificate KKG/' + editingCert.refNumber;
+                document.querySelector('.next-po-info').style.display = 'none';
+                document.querySelector('.form-actions .btn-primary').textContent = 'Update Certificate';
+
+                // Buyer
+                var buyerIdx = BUYERS.findIndex(function(b) { return b.name === editingCert.buyerName; });
+                if (buyerIdx >= 0) {
+                    buyerSelect.value = buyerIdx;
+                    buyerSelect.dispatchEvent(new Event('change'));
+                } else {
+                    buyerSelect.value = '';
+                    buyerFieldsRow.style.display = '';
+                    buyerNameInput.value = editingCert.buyerName;
+                    buyerAddressInput.value = editingCert.buyerAddress;
+                    buyerNameInput.readOnly = false;
+                    buyerAddressInput.readOnly = false;
+                }
+
+                // Fabric
+                document.getElementById('fabricDescription').value = editingCert.fabricDescription;
+
+                // Invoices
+                var firstInvRow = document.querySelector('.invoice-row');
+                if (editingCert.invoices.length > 0) {
+                    var inv0 = editingCert.invoices[0];
+                    firstInvRow.querySelector('.inv-number').value = inv0.invoiceNo;
+                    var dp0 = inv0.invoiceDate.split('/');
+                    if (dp0.length === 3) firstInvRow.querySelector('.inv-date').value = dp0[2] + '-' + dp0[1] + '-' + dp0[0];
+                    firstInvRow.querySelector('.inv-meters').value = inv0.meters;
+                }
+                for (var i = 1; i < editingCert.invoices.length; i++) {
+                    document.getElementById('addInvoiceBtn').click();
+                    var rows = document.querySelectorAll('.invoice-row');
+                    var row = rows[rows.length - 1];
+                    var inv = editingCert.invoices[i];
+                    row.querySelector('.inv-number').value = inv.invoiceNo;
+                    var dp = inv.invoiceDate.split('/');
+                    if (dp.length === 3) row.querySelector('.inv-date').value = dp[2] + '-' + dp[1] + '-' + dp[0];
+                    row.querySelector('.inv-meters').value = inv.meters;
+                }
+
+                // Manufacturer
+                var mfgIdx = MANUFACTURERS.findIndex(function(m) { return m.name === editingCert.manufacturerName; });
+                if (mfgIdx >= 0) {
+                    mfgSelect.value = mfgIdx;
+                    mfgSelect.dispatchEvent(new Event('change'));
+                } else {
+                    mfgSelect.value = '';
+                    mfgNameRow.style.display = '';
+                    mfgNameInput.value = editingCert.manufacturerName;
+                    mfgNameInput.readOnly = false;
+                    contactInput.value = editingCert.contactPerson;
+                    phoneInput.value = editingCert.telephone;
+                    emailInput.value = editingCert.email;
+                    contactInput.readOnly = false;
+                    phoneInput.readOnly = false;
+                    emailInput.readOnly = false;
+                }
+
+                // Yarn Producer
+                var yarnIdx = YARN_PRODUCERS.findIndex(function(yp) { return yp === editingCert.yarnProducer; });
+                if (yarnIdx >= 0) {
+                    yarnSelect.value = yarnIdx;
+                    yarnSelect.dispatchEvent(new Event('change'));
+                } else {
+                    yarnSelect.value = '';
+                    yarnNameRow.style.display = '';
+                    yarnInput.value = editingCert.yarnProducer;
+                    yarnInput.readOnly = false;
+                }
+
+                // Certificate date
+                var cdParts = editingCert.date.split('/');
+                if (cdParts.length === 3) {
+                    document.getElementById('certDate').value = cdParts[2] + '-' + cdParts[1] + '-' + cdParts[0];
+                }
+
+                // Show all sections at once for editing
+                document.getElementById('sectionBuyer').classList.remove('section-hidden');
+                document.getElementById('sectionFabric').classList.remove('section-hidden');
+                document.getElementById('sectionManufacturer').classList.remove('section-hidden');
+                document.getElementById('sectionDate').classList.remove('section-hidden');
+                document.getElementById('sectionActions').classList.remove('section-hidden');
+                document.querySelectorAll('.section-next').forEach(function(el) { el.style.display = 'none'; });
+            } else {
+                document.getElementById('nextRefDisplay').textContent = currentCertNumber + 1;
+            }
+        }
+
+        init();
     </script>
 </body>
 </html>

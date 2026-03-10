@@ -9,6 +9,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 </head>
 <body>
     <nav class="navbar dashboard-nav">
@@ -36,11 +38,11 @@
 
         <div class="stats-container">
             <div class="stat-card">
-                <div class="stat-number" id="totalCerts">0</div>
+                <div class="stat-number" id="totalCerts">-</div>
                 <div class="stat-label">Total Certificates</div>
             </div>
             <div class="stat-card">
-                <div class="stat-number" id="nextCertNumber">61</div>
+                <div class="stat-number" id="nextCertNumber">-</div>
                 <div class="stat-label">Next Ref. No.</div>
             </div>
         </div>
@@ -60,6 +62,8 @@
         </div>
     </div>
 
+    <script src="firebase-config.js"></script>
+    <script src="db.js"></script>
     <script src="app.js"></script>
     <script src="cert-pdf-generator.js"></script>
     <script>
@@ -71,20 +75,26 @@
         // Display username
         document.getElementById('userName').textContent = localStorage.getItem('currentUser');
 
-        // Load and display Certificates
-        loadCerts();
+        // In-memory cache for certs
+        var cachedCerts = [];
 
-        function loadCerts() {
-            const certs = JSON.parse(localStorage.getItem('certificates') || '[]');
-            const certList = document.getElementById('certList');
-            const emptyState = document.getElementById('emptyState');
-            const totalCertsEl = document.getElementById('totalCerts');
-            const nextCertEl = document.getElementById('nextCertNumber');
+        async function init() {
+            await DB.migrateFromLocalStorage();
+            await loadCerts();
+        }
+
+        async function loadCerts() {
+            var certs = await DB.getCerts();
+            var currentCertNumber = await DB.getCounter('currentCertNumber');
+
+            cachedCerts = certs;
+
+            var certList = document.getElementById('certList');
+            var emptyState = document.getElementById('emptyState');
+            var totalCertsEl = document.getElementById('totalCerts');
+            var nextCertEl = document.getElementById('nextCertNumber');
 
             totalCertsEl.textContent = certs.length;
-
-            // Get next cert number
-            const currentCertNumber = parseInt(localStorage.getItem('currentCertNumber') || '60');
             nextCertEl.textContent = currentCertNumber + 1;
 
             if (certs.length === 0) {
@@ -97,75 +107,64 @@
             certList.style.display = 'block';
 
             // Sort by ref number (newest first)
-            certs.sort((a, b) => b.refNumber - a.refNumber);
+            certs.sort(function(a, b) { return b.refNumber - a.refNumber; });
 
-            certList.innerHTML = certs.map(cert => {
-                // Build invoice summary
-                const invSummary = cert.invoices.map(inv => `Inv#${inv.invoiceNo} (${inv.meters}m)`).join(', ');
-                return `
-                <div class="po-card">
-                    <div class="po-header">
-                        <div>
-                            <h3>KKG/${cert.refNumber}</h3>
-                            <p class="po-date">Dated: ${cert.date} | Created by: ${cert.createdBy}</p>
-                        </div>
-                        <div class="po-actions">
-                            <button onclick="viewCert(${cert.refNumber})" class="btn-view">View</button>
-                            <a href="create-certificate.html?edit=${cert.refNumber}" class="btn-view" style="background: #d97706; text-decoration: none; text-align: center;">Edit</a>
-                            <button onclick="downloadCert(${cert.refNumber})" class="btn-download">Download PDF</button>
-                        </div>
-                    </div>
-                    <div class="po-details">
-                        <p><strong>Buyer:</strong> ${cert.buyerName}</p>
-                        <p><strong>Fabric:</strong> ${cert.fabricDescription.substring(0, 80)}${cert.fabricDescription.length > 80 ? '...' : ''}</p>
-                        <p><strong>Invoice(s):</strong> ${invSummary}</p>
-                        <p><strong>Manufacturer:</strong> ${cert.manufacturerName}</p>
-                    </div>
-                </div>
-            `}).join('');
+            certList.innerHTML = certs.map(function(cert) {
+                var invSummary = cert.invoices.map(function(inv) { return 'Inv#' + inv.invoiceNo + ' (' + inv.meters + 'm)'; }).join(', ');
+                return '<div class="po-card">' +
+                    '<div class="po-header">' +
+                        '<div>' +
+                            '<h3>KKG/' + cert.refNumber + '</h3>' +
+                            '<p class="po-date">Dated: ' + cert.date + ' | Created by: ' + cert.createdBy + '</p>' +
+                        '</div>' +
+                        '<div class="po-actions">' +
+                            '<button onclick="viewCert(' + cert.refNumber + ')" class="btn-view">View</button>' +
+                            '<a href="create-certificate.html?edit=' + cert.refNumber + '" class="btn-view" style="background: #d97706; text-decoration: none; text-align: center;">Edit</a>' +
+                            '<button onclick="downloadCert(' + cert.refNumber + ')" class="btn-download">Download PDF</button>' +
+                        '</div>' +
+                    '</div>' +
+                    '<div class="po-details">' +
+                        '<p><strong>Buyer:</strong> ' + cert.buyerName + '</p>' +
+                        '<p><strong>Fabric:</strong> ' + cert.fabricDescription.substring(0, 80) + (cert.fabricDescription.length > 80 ? '...' : '') + '</p>' +
+                        '<p><strong>Invoice(s):</strong> ' + invSummary + '</p>' +
+                        '<p><strong>Manufacturer:</strong> ' + cert.manufacturerName + '</p>' +
+                    '</div>' +
+                '</div>';
+            }).join('');
         }
 
         function viewCert(refNumber) {
-            const certs = JSON.parse(localStorage.getItem('certificates') || '[]');
-            const cert = certs.find(c => c.refNumber === refNumber);
+            var cert = cachedCerts.find(function(c) { return c.refNumber === refNumber; });
 
             if (cert) {
-                const invDetails = cert.invoices.map(inv =>
-                    `  Invoice No. ${inv.invoiceNo} | Dated ${inv.invoiceDate} | ${inv.meters} Meters`
-                ).join('\n');
+                var invDetails = cert.invoices.map(function(inv) {
+                    return '  Invoice No. ' + inv.invoiceNo + ' | Dated ' + inv.invoiceDate + ' | ' + inv.meters + ' Meters';
+                }).join('\n');
 
-                const details = `
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-CERTIFICATE KKG/${cert.refNumber}
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-Date: ${cert.date}
-Certificate No: ${cert.certificateNo}
-Created by: ${cert.createdBy}
-
-BUYER
-────────────────────
-${cert.buyerName}
-${cert.buyerAddress}
-
-FABRIC
-────────────────────
-${cert.fabricDescription}
-
-INVOICE(S)
-────────────────────
-${invDetails}
-
-MANUFACTURER
-────────────────────
-${cert.manufacturerName}
-Yarn Producer: ${cert.yarnProducer}
-Contact: ${cert.contactPerson}
-Phone: ${cert.telephone}
-Email: ${cert.email}
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-                `;
+                var details = '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n' +
+                    'CERTIFICATE KKG/' + cert.refNumber + '\n' +
+                    '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n' +
+                    'Date: ' + cert.date + '\n' +
+                    'Certificate No: ' + cert.certificateNo + '\n' +
+                    'Created by: ' + cert.createdBy + '\n\n' +
+                    'BUYER\n' +
+                    '────────────────────\n' +
+                    cert.buyerName + '\n' +
+                    cert.buyerAddress + '\n\n' +
+                    'FABRIC\n' +
+                    '────────────────────\n' +
+                    cert.fabricDescription + '\n\n' +
+                    'INVOICE(S)\n' +
+                    '────────────────────\n' +
+                    invDetails + '\n\n' +
+                    'MANUFACTURER\n' +
+                    '────────────────────\n' +
+                    cert.manufacturerName + '\n' +
+                    'Yarn Producer: ' + cert.yarnProducer + '\n' +
+                    'Contact: ' + cert.contactPerson + '\n' +
+                    'Phone: ' + cert.telephone + '\n' +
+                    'Email: ' + cert.email + '\n\n' +
+                    '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━';
                 alert(details);
             }
         }
@@ -176,60 +175,60 @@ Email: ${cert.email}
             window.location.href = 'login.html';
         }
 
-        function removeCert() {
-            const certs = JSON.parse(localStorage.getItem('certificates') || '[]');
+        async function removeCert() {
+            var certs = cachedCerts;
 
             if (certs.length === 0) {
                 alert('No certificates to remove!');
                 return;
             }
 
-            const refStr = prompt('Enter the Ref. No. you want to delete (number only, e.g. 61):');
+            var refStr = prompt('Enter the Ref. No. you want to delete (number only, e.g. 61):');
 
             if (!refStr) {
                 return;
             }
 
-            const refNumber = parseInt(refStr);
+            var refNumber = parseInt(refStr);
 
             if (isNaN(refNumber)) {
                 alert('❌ Invalid Ref. No. entered!');
                 return;
             }
 
-            const certToDelete = certs.find(c => c.refNumber === refNumber);
+            var certToDelete = certs.find(function(c) { return c.refNumber === refNumber; });
 
             if (!certToDelete) {
-                alert(`❌ Certificate KKG/${refNumber} not found.`);
+                alert('❌ Certificate KKG/' + refNumber + ' not found.');
                 return;
             }
 
-            const confirmMessage = `⚠️ CONFIRM DELETION:\n\n` +
-                `Certificate KKG/${certToDelete.refNumber}\n` +
-                `Buyer: ${certToDelete.buyerName}\n` +
-                `Date: ${certToDelete.date}\n\n` +
-                `This action CANNOT be undone!\n\n` +
-                `Type "DELETE" to confirm:`;
+            var confirmMessage = '⚠️ CONFIRM DELETION:\n\n' +
+                'Certificate KKG/' + certToDelete.refNumber + '\n' +
+                'Buyer: ' + certToDelete.buyerName + '\n' +
+                'Date: ' + certToDelete.date + '\n\n' +
+                'This action CANNOT be undone!\n\n' +
+                'Type "DELETE" to confirm:';
 
-            const confirmation = prompt(confirmMessage);
+            var confirmation = prompt(confirmMessage);
 
             if (confirmation === 'DELETE') {
-                const updatedCerts = certs.filter(c => c.refNumber !== refNumber);
-                localStorage.setItem('certificates', JSON.stringify(updatedCerts));
+                await DB.deleteCert(refNumber);
 
-                // Update cert counter based on which cert was deleted
-                if (updatedCerts.length === 0) {
-                    localStorage.setItem('currentCertNumber', (refNumber - 1).toString());
+                var remaining = certs.filter(function(c) { return c.refNumber !== refNumber; });
+
+                if (remaining.length === 0) {
+                    await DB.setCounter('currentCertNumber', refNumber - 1);
                 } else {
-                    const highestRemaining = Math.max(...updatedCerts.map(c => c.refNumber));
+                    var highestRemaining = Math.max.apply(null, remaining.map(function(c) { return c.refNumber; }));
                     if (refNumber > highestRemaining) {
-                        localStorage.setItem('currentCertNumber', (refNumber - 1).toString());
+                        await DB.setCounter('currentCertNumber', refNumber - 1);
                     } else {
-                        localStorage.setItem('currentCertNumber', highestRemaining.toString());
+                        await DB.setCounter('currentCertNumber', highestRemaining);
                     }
                 }
 
-                alert(`✅ Certificate KKG/${refNumber} has been deleted successfully!`);
+                alert('✅ Certificate KKG/' + refNumber + ' has been deleted successfully!');
                 location.reload();
             } else {
                 alert('❌ Deletion cancelled. Confirmation text did not match.');
@@ -238,14 +237,17 @@ Email: ${cert.email}
 
         // Search functionality
         document.getElementById('searchCert').addEventListener('input', function(e) {
-            const searchTerm = e.target.value.toLowerCase();
-            const certCards = document.querySelectorAll('.po-card');
+            var searchTerm = e.target.value.toLowerCase();
+            var certCards = document.querySelectorAll('.po-card');
 
-            certCards.forEach(card => {
-                const text = card.textContent.toLowerCase();
+            certCards.forEach(function(card) {
+                var text = card.textContent.toLowerCase();
                 card.style.display = text.includes(searchTerm) ? 'block' : 'none';
             });
         });
+
+        // Start loading data
+        init();
     </script>
 </body>
 </html>
